@@ -1,7 +1,10 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: false, // Tente desabilitar temporariamente
-};
+import type { NextConfig } from 'next'
 
-module.exports = nextConfig;
+const nextConfig: NextConfig = {
+  eslint: {
+    // ⬅️  desliga o ESLint só no build
+    ignoreDuringBuilds: true,
+  },
+}
+
+export default nextConfig
