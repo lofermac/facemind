@@ -1,4 +1,5 @@
 // app/layout.tsx
+export const dynamic = 'force-dynamic';
 import type { Metadata } from "next";
 import "./globals.css"; // O globals.css é importado aqui
 import Header from "@/components/Header"; 
