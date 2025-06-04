@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Não vamos definir o background do body aqui. 
+  Isso será controlado pela classe 'bg-slate-100' (ou similar) 
+  que colocamos na tag <body> do arquivo app/layout.tsx.
+  Isso garante que os estilos do Tailwind para o fundo tenham prioridade 
+  e que o fundo claro seja aplicado consistentemente.
+
+  Se você precisar de variáveis de cor globais, o ideal é defini-las
+  e usá-las através da configuração do Tailwind CSS em `tailwind.config.js`
+  ou aplicar classes diretamente no seu HTML.
+*/
+
+/* Se você tiver alguma outra regra CSS global MUITO específica que não possa ser
+   feita com Tailwind e que PRECISA estar aqui, adicione abaixo com cuidado.
+   Mas, para começar, vamos manter o mais limpo possível.
+*/
+
+/* Removendo o cursor de seringa e voltando ao cursor normal */
+body {
+  cursor: auto;
+}

@@ -1,0 +1,8 @@
+---
+description: Always attach current file and workspace summary
+alwaysApply: true
+globs:
+---
+
+attach_current_file()
+attach_workspace_summary()

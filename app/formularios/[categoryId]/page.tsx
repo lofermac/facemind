@@ -1,0 +1,136 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { supabase } from '@/utils/supabaseClient';
+import { toast } from 'sonner';
+import { PlusCircleIcon, EyeIcon, ArrowDownTrayIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+
+interface FormFile {
+  id: string;
+  category_id: string;
+  file_name: string;
+  file_url: string;
+}
+
+export default function CategoriaFilesPage() {
+  const router = useRouter();
+  const { categoryId } = useParams();
+  const [files, setFiles] = useState<FormFile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFiles = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('form_files')
+        .select('*')
+        .eq('category_id', categoryId);
+
+      if (error) throw error;
+      setFiles(data || []);
+    } catch (error: any) {
+      toast.error('Erro ao carregar arquivos: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [categoryId]);
+
+  useEffect(() => {
+    fetchFiles();
+  }, [fetchFiles]);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${Date.now()}_${sanitizedFileName}`;
+
+    try {
+      console.log('Iniciando upload do arquivo:', fileName);
+      console.log('Tipo do arquivo:', file.type);
+      console.log('Tamanho do arquivo:', file.size);
+
+      const { data, error } = await supabase.storage
+        .from('facemind-document-templates')
+        .upload(fileName, file);
+
+      if (error) {
+        console.error('Erro no upload:', error.message);
+        throw error;
+      }
+
+      console.log('Upload concluído:', data);
+
+      const { data: urlData, error: urlError } = supabase.storage
+        .from('facemind-document-templates')
+        .getPublicUrl(fileName);
+
+      if (urlError) {
+        console.error('Erro ao obter URL:', urlError.message);
+        throw urlError;
+      }
+
+      const publicURL = urlData.publicUrl;
+      console.log('URL pública obtida:', publicURL);
+
+      const { error: insertError } = await supabase
+        .from('form_files')
+        .insert([{ category_id: categoryId, file_name: file.name, file_url: publicURL }]);
+
+      if (insertError) {
+        console.error('Erro ao inserir no banco:', insertError.message);
+        throw insertError;
+      }
+
+      console.log('Arquivo inserido no banco com sucesso');
+      toast.success('Arquivo enviado com sucesso!');
+      fetchFiles();
+    } catch (error: any) {
+      console.error('Erro ao enviar arquivo:', error.message);
+      toast.error('Erro ao enviar arquivo: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Arquivos da Categoria</h1>
+        <button
+          onClick={() => document.getElementById('fileInput')?.click()}
+          className="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center"
+        >
+          <PlusCircleIcon className="h-5 w-5 mr-2" />
+          Novo Arquivo
+        </button>
+        <input
+          type="file"
+          id="fileInput"
+          className="hidden"
+          onChange={handleFileUpload}
+        />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {files.map(file => (
+          <div key={file.id} className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">{file.file_name}</h2>
+            </div>
+            <div className="flex justify-end space-x-4 mt-4">
+              <button className="text-blue-600 hover:text-blue-800">
+                <EyeIcon className="h-6 w-6" />
+              </button>
+              <button className="text-green-600 hover:text-green-800">
+                <PencilIcon className="h-6 w-6" />
+              </button>
+              <button className="text-red-600 hover:text-red-800">
+                <TrashIcon className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+} 
