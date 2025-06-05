@@ -19,6 +19,7 @@ export default function GerenciarCategoriasPage() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryDescription, setNewCategoryDescription] = useState('');
   const [editingCategory, setEditingCategory] = useState<Categoria | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchCategorias = useCallback(async () => {
     setLoading(true);
@@ -47,10 +48,17 @@ export default function GerenciarCategoriasPage() {
       return;
     }
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      return;
+    }
+
     let error;
     const categoryData = {
         nome: newCategoryName.trim(),
-        descricao: newCategoryDescription.trim() || null
+        descricao: newCategoryDescription.trim() || null,
+        user_id: user.id
     };
 
     if (editingCategory) {
@@ -74,7 +82,7 @@ export default function GerenciarCategoriasPage() {
       setNewCategoryName('');
       setNewCategoryDescription('');
       setEditingCategory(null);
-      fetchCategorias(); 
+      fetchCategorias();
     }
   };
 

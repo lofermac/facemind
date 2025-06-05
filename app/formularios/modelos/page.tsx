@@ -49,10 +49,17 @@ export default function GerenciarCategoriasModeloPage() {
       return;
     }
 
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData) {
+      toast.error('Usuário não autenticado.');
+      return;
+    }
+
     let error;
     const categoryData = {
         name: newCategoryName.trim(),
-        description: newCategoryDescription.trim() || null
+        description: newCategoryDescription.trim() || null,
+        user_id: userData.user.id
     };
 
     if (editingCategory) {

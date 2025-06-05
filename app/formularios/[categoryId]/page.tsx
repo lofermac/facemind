@@ -15,9 +15,14 @@ interface FormFile {
 
 export default function CategoriaFilesPage() {
   const router = useRouter();
-  const { categoryId } = useParams();
+  const { categoryId } = useParams() as { categoryId?: string };
   const [files, setFiles] = useState<FormFile[]>([]);
   const [loading, setLoading] = useState(true);
+
+  if (!categoryId) {
+    toast.error('Categoria inválida.');
+    return;
+  }
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -63,13 +68,18 @@ export default function CategoriaFilesPage() {
 
       console.log('Upload concluído:', data);
 
-      const { data: urlData, error: urlError } = supabase.storage
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData) {
+        toast.error('Usuário não autenticado.');
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
         .from('facemind-document-templates')
         .getPublicUrl(fileName);
 
-      if (urlError) {
-        console.error('Erro ao obter URL:', urlError.message);
-        throw urlError;
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('Não foi possível obter a URL pública do arquivo.');
       }
 
       const publicURL = urlData.publicUrl;
@@ -77,7 +87,7 @@ export default function CategoriaFilesPage() {
 
       const { error: insertError } = await supabase
         .from('form_files')
-        .insert([{ category_id: categoryId, file_name: file.name, file_url: publicURL }]);
+        .insert([{ category_id: categoryId, file_name: file.name, file_url: publicURL, user_id: userData.user.id }]);
 
       if (insertError) {
         console.error('Erro ao inserir no banco:', insertError.message);
@@ -90,6 +100,31 @@ export default function CategoriaFilesPage() {
     } catch (error: any) {
       console.error('Erro ao enviar arquivo:', error.message);
       toast.error('Erro ao enviar arquivo: ' + error.message);
+    }
+  };
+
+  const handleViewFile = (fileUrl: string) => {
+    window.open(fileUrl, '_blank');
+  };
+
+  const handleEditFile = (fileId: string) => {
+    console.log(`Editar arquivo com ID: ${fileId}`);
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const { error } = await supabase
+        .from('form_files')
+        .delete()
+        .eq('id', fileId);
+
+      if (error) throw error;
+
+      toast.success('Arquivo excluído com sucesso!');
+      fetchFiles();
+    } catch (error: any) {
+      console.error('Erro ao excluir arquivo:', error.message);
+      toast.error('Erro ao excluir arquivo: ' + error.message);
     }
   };
 
@@ -118,13 +153,13 @@ export default function CategoriaFilesPage() {
               <h2 className="text-xl font-bold text-gray-800">{file.file_name}</h2>
             </div>
             <div className="flex justify-end space-x-4 mt-4">
-              <button className="text-blue-600 hover:text-blue-800">
+              <button className="text-blue-600 hover:text-blue-800" onClick={() => handleViewFile(file.file_url)}>
                 <EyeIcon className="h-6 w-6" />
               </button>
-              <button className="text-green-600 hover:text-green-800">
+              <button className="text-green-600 hover:text-green-800" onClick={() => handleEditFile(file.id)}>
                 <PencilIcon className="h-6 w-6" />
               </button>
-              <button className="text-red-600 hover:text-red-800">
+              <button className="text-red-600 hover:text-red-800" onClick={() => handleDeleteFile(file.id)}>
                 <TrashIcon className="h-6 w-6" />
               </button>
             </div>

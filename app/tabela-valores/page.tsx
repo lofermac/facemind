@@ -23,6 +23,10 @@ export default function TabelaValoresPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [categoriaParaEditar, setCategoriaParaEditar] = useState<Categoria | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nome, setNome] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [dadosOriginais, setDadosOriginais] = useState({});
 
   async function fetchCategorias() {
     setLoading(true);
@@ -82,6 +86,38 @@ export default function TabelaValoresPage() {
         toast.success(`Categoria "${categoriaNome}" excluída com sucesso!`);
         fetchCategorias();
       }
+    }
+  };
+
+  const handleAddCategoria = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const categoriaData = {
+      ...dadosOriginais,
+      user_id: user.id,
+      nome: nome.trim(),
+      descricao: descricao.trim() || null
+    };
+
+    const { error } = await supabase
+      .from('categorias_procedimentos')
+      .insert([categoriaData]);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      toast.error(`Erro ao adicionar categoria: ${error.message}`);
+    } else {
+      toast.success('Categoria adicionada com sucesso!');
+      fetchCategorias();
     }
   };
 

@@ -61,51 +61,43 @@ export default function CategoriaFormModal({
     event.preventDefault();
     setIsSubmitting(true);
 
-    if (!nome.trim()) {
-      toast.error("Nome da categoria é obrigatório.");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
       setIsSubmitting(false);
       return;
     }
 
     const dadosCategoria: CategoriaInput = {
+      ...dadosOriginais,
+      user_id: user.id,
       nome: nome.trim(),
-      descricao: descricao.trim() || null,
+      descricao: descricao.trim() || null
     };
 
     let errorObj = null;
 
     if (isEditMode && categoriaParaEditar) {
-      console.log("Atualizando categoria:", categoriaParaEditar.id, dadosCategoria);
       const { error } = await supabase
         .from('categorias_procedimentos')
         .update(dadosCategoria)
         .eq('id', categoriaParaEditar.id);
       errorObj = error;
     } else {
-      console.log("Criando nova categoria:", dadosCategoria);
       const { data, error } = await supabase
         .from('categorias_procedimentos')
         .insert([dadosCategoria])
-        .select(); // Adicionado select para confirmar a inserção
-
-      if(data){
-        console.log("Categoria criada:", data);
-      }
+        .select();
       errorObj = error;
     }
 
     setIsSubmitting(false);
 
     if (errorObj) {
-      console.error("Erro do Supabase ao salvar categoria:", errorObj);
-      if (errorObj.message.includes('duplicate key value violates unique constraint') && errorObj.message.includes('categorias_procedimentos_nome_key')) {
-        toast.error('Já existe uma categoria com este nome.');
-      } else {
-        toast.error(`Erro ao salvar categoria: ${errorObj.message}`);
-      }
+      toast.error(`Erro ao salvar categoria: ${errorObj.message}`);
     } else {
       toast.success(`Categoria ${isEditMode ? 'atualizada' : 'criada'} com sucesso!`);
-      onCategoriaSaved(); // Isso vai fechar o modal e recarregar as categorias na página
+      onCategoriaSaved();
     }
   };
 

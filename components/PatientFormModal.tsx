@@ -112,6 +112,13 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
       return;
     }
 
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const dadosPaciente = {
       nome: nome.trim(), 
       cpf: cpfApenasNumeros, // Salva apenas os números
@@ -120,6 +127,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
       email: emailTrimmed || null,
       observacoes: observacoes.trim() || null, 
       status: status,
+      user_id: user.id
     };
 
     let errorObj = null; 

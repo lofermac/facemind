@@ -23,6 +23,7 @@ export interface ProcedimentoRealizadoFormData {
   observacoes: string | null;
   fotos_antes_urls?: string[] | null;
   fotos_depois_urls?: string[] | null;
+  user_id: string;
 }
 
 export interface ProcedimentoRealizadoExistente extends ProcedimentoRealizadoFormData {
@@ -216,85 +217,53 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
   };
 
   const handleSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-    // ... (handleSubmit continua igual ao da Instrução 98)
     event.preventDefault();
     setIsSubmitting(true);
-    let errors: string[] = [];
-    const nomeCategoriaParaValidar = categoriaNomeSelecionado;
-    const nomeProcedimentoParaValidar = procedimentoNomeSelecionado;
 
-    console.log('Nome do procedimento selecionado:', procedimentoNomeSelecionado);
-
-    if (!pacienteIdSelecionado) errors.push("Paciente é obrigatório.");
-    if (!nomeCategoriaParaValidar || !nomeCategoriaParaValidar.trim()) errors.push("Categoria é obrigatória.");
-    if (!nomeProcedimentoParaValidar || !nomeProcedimentoParaValidar.trim()) errors.push("Procedimento é obrigatório.");
-    if (!dataProcedimentoMask.trim()) errors.push("Data do Procedimento é obrigatória.");
-    if (!valorCobrado.trim()) errors.push("Valor Cobrado é obrigatório.");
-
-    let dataFormatadaParaSalvar: string | null = null;
-    if (dataProcedimentoMask.trim()) {
-      const parts = dataProcedimentoMask.split('/');
-      if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-        const diaOriginalStr = parts[0]; const mesOriginalStr = parts[1]; const anoOriginalStr = parts[2];
-        const diaInt = parseInt(diaOriginalStr, 10); const mesInt = parseInt(mesOriginalStr, 10) -1; const anoInt = parseInt(anoOriginalStr, 10);
-        const dataObj = new Date(anoInt, mesInt, diaInt); const hoje = new Date(); hoje.setHours(0,0,0,0);
-        if (isNaN(dataObj.getTime()) || dataObj.getDate() !== diaInt || dataObj.getMonth() !== mesInt || dataObj.getFullYear() !== anoInt) {
-          errors.push("Data do Procedimento inválida.");
-        } else if (dataObj > hoje && dataObj.toDateString() !== hoje.toDateString()) { 
-          errors.push("Data do Procedimento não pode ser uma data futura.");
-        } else {
-          dataFormatadaParaSalvar = anoOriginalStr + "-" + mesOriginalStr.padStart(2, '0') + "-" + diaOriginalStr.padStart(2, '0');
-        }
-      } else { errors.push("Formato da Data inválido. Use DD/MM/AAAA."); }
-    }
-
-    if (errors.length > 0) {
-      toast.error(errors.join(" "));
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
       setIsSubmitting(false);
       return;
     }
 
-    let urlsFinaisAntes: string[] = isEditMode ? [...urlsFotosAntesExistentes] : [];
-    let urlsFinaisDepois: string[] = isEditMode ? [...urlsFotosDepoisExistentes] : [];
-    try { 
-      if (arquivosAntes && arquivosAntes.length > 0) {
-        toast.info("Fazendo upload das fotos 'Antes'...");
-        const novasUrlsAntes = await uploadArquivos(arquivosAntes, 'antes');
-        urlsFinaisAntes.push(...novasUrlsAntes);
-      }
-      if (arquivosDepois && arquivosDepois.length > 0) {
-        toast.info("Fazendo upload das fotos 'Depois'...");
-        const novasUrlsDepois = await uploadArquivos(arquivosDepois, 'depois');
-        urlsFinaisDepois.push(...novasUrlsDepois);
-      }
-    } catch (uploadError: any) {
-      toast.error(`Erro crítico durante o upload: ${uploadError.message || 'Erro desconhecido'}`);
+    if (!pacienteIdSelecionado || !categoriaNomeSelecionado || !procedimentoNomeSelecionado || !dataProcedimentoMask) {
+      toast.error('Todos os campos obrigatórios devem ser preenchidos.');
       setIsSubmitting(false);
       return;
     }
+
+    // Converter data para o formato YYYY-MM-DD
+    const parts = dataProcedimentoMask.split('/');
+    const dataFormatadaParaSalvar = `${parts[2]}-${parts[1]}-${parts[0]}`;
+
+    // Upload de arquivos antes e depois
+    const urlsAntes = await uploadArquivos(arquivosAntes, 'antes');
+    const urlsDepois = await uploadArquivos(arquivosDepois, 'depois');
 
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
-      categoria_nome: nomeCategoriaParaValidar.trim(),      
-      procedimento_nome: nomeProcedimentoParaValidar.trim(),
-      data_procedimento: dataFormatadaParaSalvar!,
+      categoria_nome: categoriaNomeSelecionado.trim(),
+      procedimento_nome: procedimentoNomeSelecionado.trim(),
+      data_procedimento: dataFormatadaParaSalvar,
       valor_cobrado: parseFloat(valorCobrado) || 0,
       custo_produto: parseFloat(custoProduto) || 0,
       custo_insumos: parseFloat(custoInsumos) || 0,
       custo_sala: parseFloat(custoSala) || 0,
       observacoes: observacoes.trim() || null,
-      fotos_antes_urls: urlsFinaisAntes.length > 0 ? urlsFinaisAntes : null,
-      fotos_depois_urls: urlsFinaisDepois.length > 0 ? urlsFinaisDepois : null,
+      fotos_antes_urls: urlsAntes.length > 0 ? urlsAntes : null,
+      fotos_depois_urls: urlsDepois.length > 0 ? urlsDepois : null,
+      user_id: user.id
     };
-    
+
     let errorObj = null;
     let procedimentoSalvoId: string | undefined = undefined;
 
     if (isEditMode && procedimentoInicial) {
-      const { data, error } = await supabase.from('procedimentos_realizados').update(dadosParaSalvar).eq('id', procedimentoInicial.id).select().single(); 
+      const { data, error } = await supabase.from('procedimentos_realizados').update(dadosParaSalvar).eq('id', procedimentoInicial.id).select().single();
       errorObj = error; if(data) procedimentoSalvoId = data.id;
     } else {
-      const { data, error } = await supabase.from('procedimentos_realizados').insert([dadosParaSalvar]).select().single(); 
+      const { data, error } = await supabase.from('procedimentos_realizados').insert([dadosParaSalvar]).select().single();
       errorObj = error; if(data) procedimentoSalvoId = data.id;
     }
 
@@ -310,16 +279,16 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       if (inputAntes) inputAntes.value = '';
       const inputDepois = document.getElementById('fotos_depois') as HTMLInputElement;
       if (inputDepois) inputDepois.value = '';
-      onSave(procedimentoSalvoId); 
+      onSave(procedimentoSalvoId);
     }
-  }, [ 
+  }, [
       pacienteIdSelecionado, categoriaTVSelId, procedimentoTVSelId,
       categoriaNomeSelecionado, procedimentoNomeSelecionado,
-      dataProcedimentoMask, valorCobrado, 
+      dataProcedimentoMask, valorCobrado,
       custoProduto, custoInsumos, custoSala, observacoes,
-      arquivosAntes, arquivosDepois, 
+      arquivosAntes, arquivosDepois,
       urlsFotosAntesExistentes, urlsFotosDepoisExistentes,
-      isEditMode, procedimentoInicial, onSave 
+      isEditMode, procedimentoInicial, onSave
   ]);
 
   const lucroCalculado = (parseFloat(valorCobrado) || 0) - ((parseFloat(custoProduto) || 0) + (parseFloat(custoInsumos) || 0) + (parseFloat(custoSala) || 0));

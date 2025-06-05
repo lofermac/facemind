@@ -22,6 +22,7 @@ export interface ProcedimentoValorModalData {
   // podem ser omitidos aqui se não forem usados no formulário do modal.
   created_at?: string;
   categoria_id?: string;
+  user_id?: string;
 }
 
 interface ProcedimentoValorFormModalProps {
@@ -75,6 +76,13 @@ export default function ProcedimentoValorFormModal({
     event.preventDefault();
     setIsSubmitting(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      setIsSubmitting(false);
+      return;
+    }
+
     if (!nomeProcedimento.trim()) {
       toast.error("Nome do procedimento é obrigatório.");
       setIsSubmitting(false);
@@ -93,26 +101,20 @@ export default function ProcedimentoValorFormModal({
         return;
     }
 
-    // Monta o objeto de dados apenas com os campos que queremos enviar/atualizar
-    const dadosParaSalvar: {
-        nome_procedimento: string;
-        valor_pix: number | null;
-        valor_4x: number | null;
-        valor_6x: number | null;
-        observacoes: string | null;
-        categoria_id: string;
-        duracao_efeito_meses: number | null;
-    } = {
+    const dadosParaSalvar: ProcedimentoValorModalData = {
+      ...(isEditMode && procedimentoParaEditar ? procedimentoParaEditar : {} as ProcedimentoValorModalData),
+      user_id: user.id,
       nome_procedimento: nomeProcedimento.trim(),
       valor_pix: valorPix.trim() ? parseFloat(valorPix) : null,
       valor_4x: valor4x.trim() ? parseFloat(valor4x) : null,
       valor_6x: valor6x.trim() ? parseFloat(valor6x) : null,
       observacoes: observacoes.trim() || null,
-      categoria_id: categoriaId,
       duracao_efeito_meses: duracaoMesesParsed,
+      categoria_id: categoriaId,
     };
 
     let errorObj = null;
+
     if (isEditMode && procedimentoParaEditar) {
       const { error } = await supabase
         .from('procedimentos_tabela_valores')

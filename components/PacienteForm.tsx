@@ -130,14 +130,21 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
         return;
     }
 
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      setIsSubmitting(false);
+      return;
+    }
 
-    const pacienteData: PacienteFormData = {
+    const pacienteData: PacienteFormData & { user_id: string } = {
       nome: nome.trim(),
       cpf: cpfLimpo || null,
       whatsapp: whatsappLimpo || null,
       data_nascimento: dataNascimentoFormatadaParaBanco,
       email: email.trim() || null,
       status: status,
+      user_id: user.id
     };
 
     try {

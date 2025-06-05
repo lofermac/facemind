@@ -88,6 +88,43 @@ export default function ProcedimentosPorCategoriaPage() {
     }
   };
 
+  const handleAddProcedimentoValor = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para realizar esta ação.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const procedimentoValorData = {
+      ...dadosOriginais,
+      user_id: user.id,
+      nome_procedimento: nomeProcedimento.trim(),
+      valor_pix: valorPix,
+      valor_4x: valor4x,
+      valor_6x: valor6x,
+      observacoes: observacoes.trim() || null,
+      duracao_efeito_meses: duracaoEfeitoMeses || null,
+      categoria_id: categoriaId
+    };
+
+    const { error } = await supabase
+      .from('procedimentos_tabela_valores')
+      .insert([procedimentoValorData]);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      toast.error(`Erro ao adicionar procedimento valor: ${error.message}`);
+    } else {
+      toast.success('Procedimento valor adicionado com sucesso!');
+      fetchProcedimentos();
+    }
+  };
+
   if (loading) return <div className="p-6 text-center">Carregando...</div>;
   if (!categoria) return <div className="p-6 text-center text-red-500">Categoria não encontrada.</div>;
 
