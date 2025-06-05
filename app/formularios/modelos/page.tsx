@@ -98,14 +98,19 @@ export default function GerenciarCategoriasModeloPage() {
   };
 
   const handleDelete = async (categoryId: string, categoryName: string) => {
-    // TODO: Implementar lógica para verificar/alertar sobre templates existentes nesta categoria
-    // antes de permitir a exclusão da categoria, ou definir exclusão em cascata no DB.
-    if (window.confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"? (Atenção: Modelos de formulário dentro dela podem precisar ser removidos ou reatribuídos manualmente por enquanto).`)) {
+    if (window.confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"? (Todos os arquivos associados a ela também serão removidos)`)) {
+      // Primeiro, delete todos os arquivos em form_files com aquele category_id
+      const { error: filesError } = await supabase.from('form_files').delete().eq('category_id', categoryId);
+      if (filesError) {
+        toast.error(`Erro ao deletar arquivos da categoria: ${filesError.message}`);
+        return;
+      }
+      // Agora, delete a categoria
       const { error } = await supabase.from('form_categories').delete().eq('id', categoryId);
       if (error) {
         toast.error(`Erro ao deletar categoria: ${error.message}`);
       } else {
-        toast.success(`Categoria "${categoryName}" deletada com sucesso.`);
+        toast.success(`Categoria "${categoryName}" e arquivos associados deletados com sucesso.`);
         fetchCategories();
       }
     }
@@ -204,10 +209,8 @@ export default function GerenciarCategoriasModeloPage() {
       {categories.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
           {categories.map((category) => (
-            <Link href={`/formularios/modelos/${category.id}`} key={category.id}>
-              <div 
-                className="relative bg-white shadow rounded-lg p-6 transition-transform transform hover:scale-105 hover:shadow-lg"
-              >
+            <div key={category.id} className="relative bg-white shadow rounded-lg p-6 transition-transform transform hover:scale-105 hover:shadow-lg group">
+              <Link href={`/formularios/modelos/${category.id}`} className="block">
                 <div className="flex justify-center items-center mb-2">
                   <div className="flex-1 text-center">
                     <p className="text-lg font-bold text-gray-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer">
@@ -220,8 +223,24 @@ export default function GerenciarCategoriasModeloPage() {
                     )}
                   </div>
                 </div>
+              </Link>
+              <div className="absolute top-2 right-2 flex space-x-2 opacity-80 group-hover:opacity-100">
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleEdit(category); }}
+                  className="p-2 rounded-md text-slate-500 hover:text-sky-700 hover:bg-sky-100 transition-colors"
+                  title="Editar Categoria"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleDelete(category.id, category.name); }}
+                  className="p-2 rounded-md text-slate-500 hover:text-red-700 hover:bg-red-100 transition-colors"
+                  title="Excluir Categoria"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

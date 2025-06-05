@@ -44,6 +44,7 @@ export default function GerenciarCategoriasPage() {
 
   const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    console.log('Tentando salvar categoria:', newCategoryName);
     if (!newCategoryName.trim()) {
       toast.error('O nome da categoria é obrigatório.');
       return;
@@ -63,12 +64,14 @@ export default function GerenciarCategoriasPage() {
     };
 
     if (editingCategory) {
+      console.log('Editando categoria com ID:', editingCategory.id);
       const { error: updateError } = await supabase
         .from('categorias_procedimentos')
         .update(categoryData)
         .eq('id', editingCategory.id);
       error = updateError;
     } else {
+      console.log('Criando nova categoria');
       const { error: insertError } = await supabase
         .from('categorias_procedimentos')
         .insert([categoryData]);
@@ -96,6 +99,7 @@ export default function GerenciarCategoriasPage() {
   };
 
   const handleDelete = async (categoryId: string, categoryName: string) => {
+    console.log('Tentando excluir categoria com ID:', categoryId);
     if (window.confirm(`Tem certeza que deseja excluir a categoria "${categoryName}"?`)) {
       const { error } = await supabase.from('categorias_procedimentos').delete().eq('id', categoryId);
       if (error) {
