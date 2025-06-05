@@ -91,7 +91,7 @@ export default function FormulariosPage() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mt-8">
         {categories.map(category => (
-          <Link href={`/pacientes?filtroStatus=${category.name}`} key={category.id}>
+          <Link href={`/formularios/${category.id}`} key={category.id}>
             <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer">
               <div className="relative">
                 <h2 className="text-lg font-bold text-gray-800 text-center">

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
 import { IMaskInput } from 'react-imask';
@@ -31,6 +31,7 @@ interface PacienteFormProps {
 
 export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }: PacienteFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const isEditMode = !!pacienteInicial;
 
   const [nome, setNome] = useState(pacienteInicial?.nome || '');
@@ -66,6 +67,13 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
     }
   }, [isEditMode, pacienteInicial]);
 
+  const handleRedirect = () => {
+    console.log('Tentando redirecionar...');
+    console.log('Pathname atual:', pathname);
+    
+    // Forçar uma navegação completa
+    window.location.href = '/pacientes';
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -133,10 +141,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
     };
 
     try {
-      let upsertedPacienteId: string | undefined;
-
       if (isEditMode && pacienteInicial) {
-        // Modo de Edição
         const { data, error } = await supabase
           .from('pacientes')
           .update(pacienteData)
@@ -145,11 +150,15 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
           .single();
 
         if (error) throw error;
-        if (data) upsertedPacienteId = data.id;
+        if (data) {
         toast.success('Paciente atualizado com sucesso!');
-
+          if (onFormSubmit) {
+            onFormSubmit(data.id);
+          } else {
+            handleRedirect();
+          }
+        }
       } else {
-        // Modo de Criação
         const { data, error } = await supabase
           .from('pacientes')
           .insert([pacienteData])
@@ -157,24 +166,23 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
           .single();
 
         if (error) throw error;
-        if (data) upsertedPacienteId = data.id;
+        if (data) {
+          console.log('Paciente criado com sucesso, ID:', data.id);
         toast.success('Paciente cadastrado com sucesso!');
-        // Limpar formulário após cadastro bem-sucedido (opcional, ou redirecionar)
-        setNome('');
-        setCpf('');
-        setWhatsapp('');
-        setDataNascimento('');
-        setEmail('');
-        setStatus('Ativo');
-      }
-
-      if (onFormSubmit && upsertedPacienteId) {
-        onFormSubmit(upsertedPacienteId);
+          
+          // Tentar redirecionar após um breve delay
+          setTimeout(() => {
+            console.log('Iniciando redirecionamento...');
+            if (onFormSubmit) {
+              console.log('Executando onFormSubmit...');
+              onFormSubmit(data.id);
       } else {
-        // Se não houver callback onFormSubmit, redireciona para a lista de pacientes
-        router.push('/pacientes'); 
+              console.log('Executando redirecionamento direto...');
+              handleRedirect();
+            }
+          }, 500);
       }
-
+      }
     } catch (error: any) {
       console.error('Erro ao salvar paciente:', error);
       toast.error(`Erro ao salvar paciente: ${error.message}`);
@@ -187,7 +195,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
     if (onCancel) {
       onCancel();
     } else {
-      router.push('/pacientes'); // Default: voltar para a lista
+      handleRedirect();
     }
   };
 
@@ -305,13 +313,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
       <div className="pt-6 flex items-center justify-end space-x-3">
         <button
           type="button"
-          onClick={() => {
-            if (onCancel) {
-              onCancel();
-            } else {
-              router.push('/pacientes');
-            }
-          }}
+          onClick={handleCancel}
           className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Cancelar

@@ -1,7 +1,7 @@
 // app/procedimentos/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../utils/supabaseClient'; // Ajuste se o seu utils estiver em outro lugar
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ function formatarValor(valor: number | null): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export default function ListarProcedimentosPage() {
+function ProcedimentosInner() {
   const searchParams = useSearchParams();
   const [procedimentos, setProcedimentos] = useState<ProcedimentoRealizado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,5 +309,13 @@ export default function ListarProcedimentosPage() {
         </Dialog>
       </Transition.Root>
     </div>
+  );
+}
+
+export default function ListarProcedimentosPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">Carregando...</div>}>
+      <ProcedimentosInner />
+    </Suspense>
   );
 }

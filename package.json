@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze": "ANALYZE=true next build"
+  },
+  "engines": {
+    "node": ">=18.14"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
