@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 export default function EditarProcedimentoPage() {
   const router = useRouter();
   const params = useParams();
-  const procedimentoId = params.id as string;
+  const procedimentoId = params && typeof params.id === 'string' ? params.id : '';
 
   // Usar a interface correta importada
   const [procedimentoParaEditar, setProcedimentoParaEditar] = useState<ProcedimentoRealizadoExistente | null>(null);
@@ -55,7 +55,6 @@ export default function EditarProcedimentoPage() {
   }, [procedimentoId]);
 
   const handleSave = (idDoProcedimentoSalvo?: string) => {
-    toast.success('Procedimento atualizado com sucesso!');
     router.push('/procedimentos');
   };
 

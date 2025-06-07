@@ -154,18 +154,18 @@ export default function FinanceiroPage() {
           <div className="flex flex-row w-full items-center justify-between gap-6 flex-wrap">
             <div className="flex items-center">
               <div className="flex space-x-2 bg-white/70 backdrop-blur-xl rounded-full p-2 shadow-lg border border-white/30">
-                <button
+            <button
                   className={`px-6 py-2 rounded-full font-semibold text-base transition-all duration-200
                     ${abaSelecionada === 'overview'
                       ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-lg scale-105'
                       : 'text-slate-600 hover:text-blue-700 hover:bg-white/80'}
                   `}
                   style={{ boxShadow: abaSelecionada === 'overview' ? '0 2px 16px 0 rgba(30, 64, 175, 0.10)' : undefined }}
-                  onClick={() => setAbaSelecionada('overview')}
-                >
-                  Overview
-                </button>
-                <button
+              onClick={() => setAbaSelecionada('overview')}
+            >
+              Overview
+            </button>
+            <button
                   className={`px-6 py-2 rounded-full font-semibold text-base transition-all duration-200
                     ${abaSelecionada === 'select'
                       ? 'bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg scale-105'
@@ -173,44 +173,44 @@ export default function FinanceiroPage() {
                   `}
                   style={{ boxShadow: abaSelecionada === 'select' ? '0 2px 16px 0 rgba(22, 163, 74, 0.10)' : undefined }}
                   onClick={() => setAbaSelecionada('select')}
-                >
+            >
                   Select
-                </button>
-              </div>
-            </div>
+            </button>
+          </div>
+        </div>
             {abaSelecionada === 'select' && (
               <div className="flex flex-wrap gap-6 items-center justify-end w-full md:w-auto mt-4 md:mt-0">
-                <select
+            <select
                   className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[120px]"
-                  value={filtroAno}
-                  onChange={e => setFiltroAno(Number(e.target.value))}
-                >
-                  {anos.map(ano => (
-                    <option key={ano} value={ano}>{ano}</option>
-                  ))}
-                </select>
-                <select
+              value={filtroAno}
+              onChange={e => setFiltroAno(Number(e.target.value))}
+            >
+              {anos.map(ano => (
+                <option key={ano} value={ano}>{ano}</option>
+              ))}
+            </select>
+            <select
                   className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[180px]"
-                  value={filtroMes}
-                  onChange={e => setFiltroMes(Number(e.target.value))}
-                >
-                  <option value={0}>Todos os Meses</option>
-                  {mesesNomes.map((mes, idx) => (
-                    <option key={mes} value={idx + 1}>{mes}</option>
-                  ))}
-                </select>
-                <select
+              value={filtroMes}
+              onChange={e => setFiltroMes(Number(e.target.value))}
+            >
+              <option value={0}>Todos os Meses</option>
+              {mesesNomes.map((mes, idx) => (
+                <option key={mes} value={idx + 1}>{mes}</option>
+              ))}
+            </select>
+            <select
                   className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[200px]"
-                  value={filtroCategoria}
-                  onChange={e => setFiltroCategoria(e.target.value)}
-                >
-                  <option value="">Todas as Categorias</option>
-                  {categorias.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+              value={filtroCategoria}
+              onChange={e => setFiltroCategoria(e.target.value)}
+            >
+              <option value="">Todas as Categorias</option>
+              {categorias.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        )}
           </div>
         </div>
         {abaSelecionada === 'select' && (
@@ -383,7 +383,7 @@ export default function FinanceiroPage() {
                             {formatarValor(proc.valor_cobrado)}
                           </span>
                         </td>
-                      </tr>
+                    </tr>
                     </Link>
                   ))}
                 </tbody>
