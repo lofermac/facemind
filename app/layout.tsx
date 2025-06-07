@@ -49,7 +49,7 @@ export default function RootLayout({
   }, [pathname]);
 
   useEffect(() => {
-    if (!isLoading && !session && pathname !== '/profissionais/login') {
+    if (!isLoading && !session && pathname !== '/profissionais/login' && pathname !== '/') {
       window.location.href = '/profissionais/login'; // Redireciona para a tela de login
     }
   }, [isLoading, session, pathname]);
@@ -58,11 +58,11 @@ export default function RootLayout({
     <html lang="pt-BR">
       {/* ✨ GARANTA QUE ESTA CLASSE ESTÁ AQUI E É CLARA ✨ */}
       <body className="bg-slate-100 antialiased"> 
-        {!isLoginPage && !isLoading ? (
+        {!isLoginPage && !isLoading && pathname !== '/' ? (
           session ? (
             <>
-        <Header />
-        <MainMenuTabs />
+              <Header />
+              <MainMenuTabs />
             </>
           ) : (
             <div className="flex justify-center items-center min-h-screen">

@@ -1,4 +1,4 @@
-// app/dashboard/page.tsx (ou seu arquivo de dashboard)
+ // app/dashboard/page.tsx (ou seu arquivo de dashboard)
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';

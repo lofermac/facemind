@@ -36,7 +36,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-blue-800 border-b border-gray-300">
+    <header className="bg-blue-900 border-b border-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex-1 flex justify-start">
@@ -48,10 +48,7 @@ export default function Header() {
           </div>
 
           <div className="flex-shrink-0 flex flex-col items-center justify-center">
-            <SparklesIcon className="h-6 w-6 text-yellow-400 mb-1" />
-            <span className="font-extrabold text-2xl text-white tracking-tight" style={{ fontFamily: 'Poppins, sans-serif' }}>
-              FaceMind
-            </span>
+            <img src="/logo.png" alt="Logo FaceMind" className="h-10 w-auto" />
           </div>
 
           <div className="flex-1 flex justify-end">
