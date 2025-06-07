@@ -3,7 +3,7 @@
 
 console.log('ProcedimentoForm.tsx carregado - VERSÃO UPLOAD URLS BLINDADO'); 
 
-import React, { useState, useEffect, ChangeEvent, useCallback } from 'react';
+import React, { useState, useEffect, ChangeEvent, useCallback, DragEvent } from 'react';
 import { supabase } from '@/utils/supabaseClient'; 
 import { IMaskInput } from 'react-imask';
 import { toast } from 'sonner';
@@ -66,6 +66,8 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
   const isEditMode = !!procedimentoInicial;
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imagemEmVisualizacaoUrl, setImagemEmVisualizacaoUrl] = useState<string | null>(null);
+  const [previewAntes, setPreviewAntes] = useState<string[]>([]);
+  const [previewDepois, setPreviewDepois] = useState<string[]>([]);
 
   interface PacienteSelecao { id: string; nome: string; }
 
@@ -156,11 +158,35 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     }
   }, [procedimentoTVSelId, listaProcedimentosTV]);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, tipo: 'antes' | 'depois') => { /* ... (igual) ... */ 
-     if (event.target.files) {
-      if (tipo === 'antes') setArquivosAntes(event.target.files);
-      else if (tipo === 'depois') setArquivosDepois(event.target.files);
+  // Upload intuitivo: drag and drop + input
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, tipo: 'antes' | 'depois') => {
+    if (event.target.files) {
+      const newFiles = Array.from(event.target.files);
+      if (tipo === 'antes') {
+        const current = arquivosAntes ? Array.from(arquivosAntes) : [];
+        const combined = [...current, ...newFiles];
+        // Criar um novo FileList
+        const dataTransfer = new DataTransfer();
+        combined.forEach(f => dataTransfer.items.add(f));
+        setArquivosAntes(dataTransfer.files);
+      } else if (tipo === 'depois') {
+        const current = arquivosDepois ? Array.from(arquivosDepois) : [];
+        const combined = [...current, ...newFiles];
+        const dataTransfer = new DataTransfer();
+        combined.forEach(f => dataTransfer.items.add(f));
+        setArquivosDepois(dataTransfer.files);
+      }
     }
+  };
+  const handleDrop = (e: DragEvent<HTMLLabelElement>, tipo: 'antes' | 'depois') => {
+    e.preventDefault();
+    if (e.dataTransfer.files) {
+      if (tipo === 'antes') setArquivosAntes(e.dataTransfer.files);
+      else if (tipo === 'depois') setArquivosDepois(e.dataTransfer.files);
+    }
+  };
+  const handleDragOver = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
   };
   const handleAbrirImagemModal = (url: string) => { /* ... (igual) ... */ 
     setImagemEmVisualizacaoUrl(url);
@@ -241,6 +267,25 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     const urlsAntes = await uploadArquivos(arquivosAntes, 'antes');
     const urlsDepois = await uploadArquivos(arquivosDepois, 'depois');
 
+    // Combinar fotos existentes e novas (modo edição)
+    let fotosAntesFinal: string[] | null = null;
+    let fotosDepoisFinal: string[] | null = null;
+    if (isEditMode) {
+      fotosAntesFinal = [
+        ...(urlsFotosAntesExistentes || []),
+        ...urlsAntes
+      ];
+      fotosDepoisFinal = [
+        ...(urlsFotosDepoisExistentes || []),
+        ...urlsDepois
+      ];
+      if (fotosAntesFinal.length === 0) fotosAntesFinal = null;
+      if (fotosDepoisFinal.length === 0) fotosDepoisFinal = null;
+    } else {
+      fotosAntesFinal = urlsAntes.length > 0 ? urlsAntes : null;
+      fotosDepoisFinal = urlsDepois.length > 0 ? urlsDepois : null;
+    }
+
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
@@ -251,8 +296,8 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       custo_insumos: parseFloat(custoInsumos) || 0,
       custo_sala: parseFloat(custoSala) || 0,
       observacoes: observacoes.trim() || null,
-      fotos_antes_urls: urlsAntes.length > 0 ? urlsAntes : null,
-      fotos_depois_urls: urlsDepois.length > 0 ? urlsDepois : null,
+      fotos_antes_urls: fotosAntesFinal,
+      fotos_depois_urls: fotosDepoisFinal,
       user_id: user.id
     };
 
@@ -293,9 +338,65 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
 
   const lucroCalculado = (parseFloat(valorCobrado) || 0) - ((parseFloat(custoProduto) || 0) + (parseFloat(custoInsumos) || 0) + (parseFloat(custoSala) || 0));
 
+  useEffect(() => {
+    if (arquivosAntes) {
+      const filesArray = Array.from(arquivosAntes);
+      Promise.all(filesArray.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      })).then(setPreviewAntes);
+    } else {
+      setPreviewAntes([]);
+    }
+  }, [arquivosAntes]);
+
+  useEffect(() => {
+    if (arquivosDepois) {
+      const filesArray = Array.from(arquivosDepois);
+      Promise.all(filesArray.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      })).then(setPreviewDepois);
+    } else {
+      setPreviewDepois([]);
+    }
+  }, [arquivosDepois]);
+
+  // Remover imagem do preview antes do upload
+  const handleRemovePreview = (tipo: 'antes' | 'depois', idx: number) => {
+    if (tipo === 'antes' && arquivosAntes) {
+      const arr = Array.from(arquivosAntes);
+      arr.splice(idx, 1);
+      const dataTransfer = new DataTransfer();
+      arr.forEach(f => dataTransfer.items.add(f));
+      setArquivosAntes(dataTransfer.files.length ? dataTransfer.files : null);
+    } else if (tipo === 'depois' && arquivosDepois) {
+      const arr = Array.from(arquivosDepois);
+      arr.splice(idx, 1);
+      const dataTransfer = new DataTransfer();
+      arr.forEach(f => dataTransfer.items.add(f));
+      setArquivosDepois(dataTransfer.files.length ? dataTransfer.files : null);
+    }
+  };
+
+  // 1. Funções para remover fotos já existentes
+  const handleRemoveFotoExistente = (tipo: 'antes' | 'depois', idx: number) => {
+    if (tipo === 'antes') {
+      setUrlsFotosAntesExistentes(prev => prev.filter((_, i) => i !== idx));
+    } else {
+      setUrlsFotosDepoisExistentes(prev => prev.filter((_, i) => i !== idx));
+    }
+  };
+
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* ... (JSX do formulário: Paciente, Selects de Categoria/Procedimento, Data, Custos, Observações) ... */}
         {/* Cole aqui o JSX do formulário da Instrução 98, pois a estrutura visual dos campos não mudou */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -413,43 +514,72 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         <div className="pt-4">
             <h3 className="text-md font-medium text-gray-700 mb-2">Fotos do Procedimento</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Fotos Antes */}
+                {/* Upload Antes */}
                 <div>
-                    <label htmlFor="fotos_antes" className="block text-sm font-medium text-gray-700 mb-1">
-                      Fotos do Antes ({arquivosAntes ? arquivosAntes.length : 0} novas selecionadas)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fotos Antes</label>
+                    <label
+                      className="flex flex-col items-center justify-center border-2 border-dashed border-blue-300 rounded-xl p-6 cursor-pointer transition hover:border-blue-500 bg-blue-50 hover:bg-blue-100 text-blue-700 text-center min-h-[120px]"
+                      onDrop={e => handleDrop(e, 'antes')}
+                      onDragOver={handleDragOver}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0l-4 4m4-4l4 4M17 8v8m0 0l4-4m-4 4l-4-4" /></svg>
+                      <span className="font-semibold">Arraste ou clique para selecionar</span>
+                      <span className="text-xs text-blue-500 mt-1">Adicione várias imagens</span>
+                      <input type="file" multiple accept="image/*" onChange={e => handleFileChange(e, 'antes')} className="hidden" />
+                      {previewAntes.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {previewAntes.map((src, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={src}
+                                alt={`Preview Antes ${idx + 1}`}
+                                className="w-20 h-20 object-cover rounded-lg border border-blue-200 shadow-sm"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-blue-600 hover:bg-red-100 hover:text-red-600 transition text-xs opacity-0 group-hover:opacity-100"
+                                onClick={() => handleRemovePreview('antes', idx)}
+                                title="Remover imagem"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </label>
-                    <input 
-                        id="fotos_antes" name="fotos_antes" type="file" multiple 
-                        accept="image/png, image/jpeg, image/gif" 
-                        onChange={(e) => handleFileChange(e, 'antes')}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2"
-                    />
                     {isEditMode && urlsFotosAntesExistentes.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Antes):</p>
                         <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                           {urlsFotosAntesExistentes.map((url, index) => {
-                            const originalUrl = url.split('?')[0]; 
-                            console.log(`Renderizando miniatura 'Antes' ${index} com URL: ${url}`); // DEBUG
+                            const originalUrl = url.split('?')[0];
                             return (
-                              <img 
-                                key={`antes-existente-${index}`} 
-                                src={url} 
-                                onError={(e) => { 
-                                  const target = e.target as HTMLImageElement;
-                                  console.warn(`Falha ao carregar miniatura (Antes): ${url}. Tentando original: ${originalUrl}`);
-                                  if (target.src !== originalUrl) target.src = originalUrl;
-                                  else {
-                                    target.alt = `Erro: ${originalUrl.substring(originalUrl.lastIndexOf('/') + 1)}`;
-                                    // Adicionar um placeholder visual de erro se a original também falhar
-                                    target.parentNode?.appendChild(document.createTextNode(target.alt));
-                                    target.style.display = 'none'; // Esconde a tag img quebrada
-                                  }
-                                }}
-                                alt={`Foto Antes ${index + 1}`} 
-                                className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75" 
-                                onClick={() => handleAbrirImagemModal(url)} 
-                              />
+                              <div key={`antes-existente-${index}`} className="relative group">
+                                <img
+                                  src={url}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if (target.src !== originalUrl) target.src = originalUrl;
+                                    else {
+                                      target.alt = `Erro: ${originalUrl.substring(originalUrl.lastIndexOf('/') + 1)}`;
+                                      target.parentNode?.appendChild(document.createTextNode(target.alt));
+                                      target.style.display = 'none';
+                                    }
+                                  }}
+                                  alt={`Foto Antes ${index + 1}`}
+                                  className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
+                                  onClick={() => handleAbrirImagemModal(url)}
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-blue-600 hover:bg-red-100 hover:text-red-600 transition text-xs opacity-0 group-hover:opacity-100"
+                                  onClick={() => handleRemoveFotoExistente('antes', index)}
+                                  title="Remover imagem"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             );
                           })}
                         </div>
@@ -457,42 +587,72 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                     )}
                 </div>
 
-                {/* Fotos Depois */}
+                {/* Upload Depois */}
                 <div>
-                    <label htmlFor="fotos_depois" className="block text-sm font-medium text-gray-700 mb-1">
-                      Fotos do Depois ({arquivosDepois ? arquivosDepois.length : 0} novas selecionadas)
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fotos Depois</label>
+                    <label
+                      className="flex flex-col items-center justify-center border-2 border-dashed border-green-300 rounded-xl p-6 cursor-pointer transition hover:border-green-500 bg-green-50 hover:bg-green-100 text-green-700 text-center min-h-[120px]"
+                      onDrop={e => handleDrop(e, 'depois')}
+                      onDragOver={handleDragOver}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0l-4 4m4-4l4 4M17 8v8m0 0l4-4m-4 4l-4-4" /></svg>
+                      <span className="font-semibold">Arraste ou clique para selecionar</span>
+                      <span className="text-xs text-green-500 mt-1">Adicione várias imagens</span>
+                      <input type="file" multiple accept="image/*" onChange={e => handleFileChange(e, 'depois')} className="hidden" />
+                      {previewDepois.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          {previewDepois.map((src, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={src}
+                                alt={`Preview Depois ${idx + 1}`}
+                                className="w-20 h-20 object-cover rounded-lg border border-green-200 shadow-sm"
+                              />
+                              <button
+                                type="button"
+                                className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-green-600 hover:bg-red-100 hover:text-red-600 transition text-xs opacity-0 group-hover:opacity-100"
+                                onClick={() => handleRemovePreview('depois', idx)}
+                                title="Remover imagem"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </label>
-                    <input 
-                        id="fotos_depois" name="fotos_depois" type="file" multiple 
-                        accept="image/png, image/jpeg, image/gif"
-                        onChange={(e) => handleFileChange(e, 'depois')}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2"
-                    />
                     {isEditMode && urlsFotosDepoisExistentes.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Depois):</p>
                         <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                           {urlsFotosDepoisExistentes.map((url, index) => {
                             const originalUrl = url.split('?')[0];
-                            console.log(`Renderizando miniatura 'Depois' ${index} com URL: ${url}`); // DEBUG
                             return (
-                              <img 
-                                key={`depois-existente-${index}`} 
-                                src={url} 
-                                onError={(e) => { 
-                                  const target = e.target as HTMLImageElement;
-                                  console.warn(`Falha ao carregar miniatura (Depois): ${url}. Tentando original: ${originalUrl}`);
-                                  if (target.src !== originalUrl) target.src = originalUrl;
-                                  else {
-                                    target.alt = `Erro: ${originalUrl.substring(originalUrl.lastIndexOf('/') + 1)}`;
-                                    target.parentNode?.appendChild(document.createTextNode(target.alt));
-                                    target.style.display = 'none';
-                                  }
-                                }}
-                                alt={`Foto Depois ${index + 1}`} 
-                                className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
-                                onClick={() => handleAbrirImagemModal(url)}
-                              />
+                              <div key={`depois-existente-${index}`} className="relative group">
+                                <img
+                                  src={url}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if (target.src !== originalUrl) target.src = originalUrl;
+                                    else {
+                                      target.alt = `Erro: ${originalUrl.substring(originalUrl.lastIndexOf('/') + 1)}`;
+                                      target.parentNode?.appendChild(document.createTextNode(target.alt));
+                                      target.style.display = 'none';
+                                    }
+                                  }}
+                                  alt={`Foto Depois ${index + 1}`}
+                                  className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
+                                  onClick={() => handleAbrirImagemModal(url)}
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-green-600 hover:bg-red-100 hover:text-red-600 transition text-xs opacity-0 group-hover:opacity-100"
+                                  onClick={() => handleRemoveFotoExistente('depois', index)}
+                                  title="Remover imagem"
+                                >
+                                  ×
+                                </button>
+                              </div>
                             );
                           })}
                         </div>

@@ -41,7 +41,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
           <div className="flex-1 flex justify-start">
             <div className="bg-blue-700 px-3 py-1.5 rounded-lg">
-              <span className="text-sm text-white">
+              <span className="text-sm text-white"> 
                 Bem-vindo, <span className="font-semibold">{userName}</span>
               </span>
             </div>

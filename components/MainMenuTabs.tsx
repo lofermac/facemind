@@ -10,11 +10,14 @@ const tabs = [
   { name: 'Procedimentos', href: '/procedimentos' }, 
   { name: 'Formulários', href: '/formularios' },
   { name: 'Tabela de Valores', href: '/tabela-valores' },
+  { name: 'Financeiro', href: '/financeiro' },
   { name: 'Configurações', href: '/configuracoes' },
 ];
 
 export default function MainMenuTabs() {
   const pathname = usePathname();
+
+  if (!pathname) return null;
 
   return (
     <div className="bg-gray-50 border-b border-gray-200">

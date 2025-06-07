@@ -94,7 +94,7 @@ export default function CategoriaFormModal({
     setIsSubmitting(false);
 
     if (errorObj) {
-      toast.error(`Erro ao salvar categoria: ${errorObj.message}`);
+        toast.error(`Erro ao salvar categoria: ${errorObj.message}`);
     } else {
       toast.success(`Categoria ${isEditMode ? 'atualizada' : 'criada'} com sucesso!`);
       onCategoriaSaved();
