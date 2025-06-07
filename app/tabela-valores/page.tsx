@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import CategoriaFormModal from '@/components/CategoriaFormModal'; // Usando alias
 import '../styles/tabela-valores.css';
 import { PencilIcon, TrashIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 export interface Categoria {
   id: string;
@@ -124,8 +125,7 @@ export default function TabelaValoresPage() {
   if (loading) {
     return (
       <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sky-500 mr-3"></div>
-        Carregando categorias...
+        <AppleLikeLoader text="Carregando categorias..." />
       </div>
     );
   }
@@ -134,30 +134,30 @@ export default function TabelaValoresPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-[2rem] font-extrabold text-gray-900">Gerenciar Tabela de Valores</h1>
-          <p className="text-[1.125rem] text-gray-600 mt-1">Visualize e gerencie todas as categorias de valores</p>
+          <h1 className="text-[2rem] font-extrabold text-slate-900">Gerenciar Tabela de Valores</h1>
+          <p className="text-[1.125rem] text-slate-600 mt-1">Visualize e gerencie todas as categorias de valores</p>
         </div>
         <Link
           href="/tabela-valores/categorias"
-          className="inline-flex items-center px-5 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg cursor-pointer"
+          className="inline-flex items-center px-6 py-3 rounded-xl shadow bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-2xl"
         >
-          <PlusCircleIcon className="h-5 w-5 mr-2" />
+          <PlusCircleIcon className="h-6 w-6 mr-2" />
           Gerenciar Categorias
         </Link>
       </div>
 
       {categorias.length === 0 && !loading ? (
         <div className="text-center py-10">
-          <p className="text-gray-500">Nenhuma categoria cadastrada ainda.</p>
-          <p className="text-sm text-gray-400 mt-2">Clique em "Gerenciar Categorias" para começar.</p>
+          <p className="text-slate-500">Nenhuma categoria cadastrada ainda.</p>
+          <p className="text-sm text-slate-400 mt-2">Clique em "Gerenciar Categorias" para começar.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-8">
           {categorias.map((categoria) => (
             <Link href={`/tabela-valores/${categoria.id}`} key={categoria.id}>
-              <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between transition-transform transform hover:scale-105 hover:shadow-lg">
-                <div className="relative">
-                  <h2 className="text-lg font-bold text-gray-800 text-center">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col justify-center items-center transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30 cursor-pointer min-h-[120px] h-32">
+                <div className="relative w-full flex items-center justify-center h-full">
+                  <h2 className="text-xl font-bold text-slate-900 text-center break-words w-full">
                     {categoria.nome}
                   </h2>
                 </div>

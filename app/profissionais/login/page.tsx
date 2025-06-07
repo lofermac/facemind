@@ -31,46 +31,46 @@ export default function ProfissionaisLoginPage() {
         <h1 className="text-3xl font-semibold text-white mb-2 tracking-tight" style={{ fontFamily: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>Área do Profissional</h1>
         <p className="text-base text-slate-200 mb-8 text-center font-normal">Acesse sua área exclusiva para gerenciar seus atendimentos e procedimentos</p>
         <form onSubmit={handleLogin} className="w-full space-y-6">
-          <div className="space-y-4">
-            <div>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+            <div className="space-y-4">
+              <div>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 autoFocus
                 className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-300 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/30 transition-all duration-200 text-base font-normal shadow-sm"
-                placeholder="Seu email"
+                  placeholder="Seu email"
                 style={{ fontFamily: 'Inter, Poppins, -apple-system, BlinkMacSystemFont, sans-serif' }}
-              />
-            </div>
-            <div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                />
+              </div>
+              <div>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 className="w-full px-4 py-3 bg-white/20 text-white placeholder-slate-300 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/30 transition-all duration-200 text-base font-normal shadow-sm"
-                placeholder="Sua senha"
+                  placeholder="Sua senha"
                 style={{ fontFamily: 'Inter, Poppins, -apple-system, BlinkMacSystemFont, sans-serif' }}
-              />
+                />
+              </div>
             </div>
-          </div>
-          {error && (
+            {error && (
             <div className="bg-red-100/80 text-red-600 p-3 rounded-lg text-sm text-center animate-fade-in">
-              {error}
-            </div>
-          )}
-          <button
-            type="submit"
+                {error}
+              </div>
+            )}
+              <button
+                type="submit"
             className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-700 via-blue-600 to-blue-800 text-white font-semibold text-lg shadow-lg hover:from-blue-800 hover:to-blue-900 hover:scale-[1.01] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             style={{ fontFamily: 'Inter, Poppins, -apple-system, BlinkMacSystemFont, sans-serif' }}
-          >
-            Entrar
-          </button>
-        </form>
+              >
+                Entrar
+              </button>
+          </form>
       </div>
       <style jsx>{`
         .bg-gradient-radial {

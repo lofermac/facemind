@@ -6,6 +6,7 @@ import { PlusCircleIcon, EyeIcon, ArrowDownTrayIcon, PencilIcon, TrashIcon } fro
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 interface FormCategory {
   id: string;
@@ -68,8 +69,7 @@ export default function FormulariosPage() {
   if (loading) {
     return (
       <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sky-500 mr-3"></div>
-        Carregando dados dos formulários...
+        <AppleLikeLoader text="Carregando dados dos formulários..." />
       </div>
     );
   }
@@ -78,23 +78,23 @@ export default function FormulariosPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-[2rem] font-extrabold text-gray-900">Gerenciar Formulários</h1>
-          <p className="text-[1.125rem] text-gray-600 mt-1">Visualize e gerencie todos os formulários disponíveis</p>
+          <h1 className="text-[2rem] font-extrabold text-slate-900">Gerenciar Formulários</h1>
+          <p className="text-[1.125rem] text-slate-600 mt-1">Visualize e gerencie todos os formulários disponíveis</p>
         </div>
         <button
           onClick={() => router.push('/formularios/modelos')}
-          className="inline-flex items-center px-5 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg cursor-pointer"
+          className="inline-flex items-center px-6 py-3 rounded-xl shadow bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-2xl"
         >
-          <PlusCircleIcon className="h-5 w-5 mr-2" />
+          <PlusCircleIcon className="h-6 w-6 mr-2" />
           Gerenciar Categorias
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mt-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
         {categories.map(category => (
           <Link href={`/formularios/${category.id}`} key={category.id}>
-            <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col justify-between transition-transform transform hover:scale-105 hover:shadow-lg cursor-pointer">
+            <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30 cursor-pointer">
               <div className="relative">
-                <h2 className="text-lg font-bold text-gray-800 text-center">
+                <h2 className="text-xl font-bold text-slate-900 text-center">
                   {category.name}
                 </h2>
               </div>
@@ -105,18 +105,18 @@ export default function FormulariosPage() {
       {selectedCategory && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold text-slate-700 mb-4">Arquivos da Categoria</h2>
-          <ul role="list" className="divide-y divide-slate-200">
+          <ul role="list" className="divide-y divide-slate-200 bg-white/60 backdrop-blur-xl rounded-xl shadow border border-white/30">
             {files.map(file => (
               <li key={file.id} className="p-4 flex justify-between items-center">
-                <span>{file.file_name}</span>
+                <span className="text-slate-800 font-medium">{file.file_name}</span>
                 <div className="flex space-x-2">
-                  <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="text-green-500 hover:text-green-700">
+                  <a href={file.file_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow text-green-500 hover:text-green-700 hover:shadow-lg transition-all">
                     <EyeIcon className="h-5 w-5" />
                   </a>
-                  <button className="text-blue-500 hover:text-blue-700">
+                  <button className="w-9 h-9 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow text-blue-500 hover:text-blue-700 hover:shadow-lg transition-all">
                     <PencilIcon className="h-5 w-5" />
                   </button>
-                  <button className="text-red-500 hover:text-red-700">
+                  <button className="w-9 h-9 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow text-red-500 hover:text-red-700 hover:shadow-lg transition-all">
                     <TrashIcon className="h-5 w-5" />
                   </button>
                 </div>

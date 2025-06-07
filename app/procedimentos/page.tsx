@@ -9,6 +9,7 @@ import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import '../styles/procedimentos.css';
 import { useRouter, useSearchParams } from 'next/navigation';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 interface ProcedimentoRealizado {
   id: string;
@@ -36,7 +37,12 @@ function ProcedimentosInner() {
   const searchParams = useSearchParams();
   const [procedimentos, setProcedimentos] = useState<ProcedimentoRealizado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('filtroNome') || '');
+  const [searchTerm, setSearchTerm] = useState(() => {
+    if (searchParams && typeof searchParams.get === 'function') {
+      return searchParams.get('filtroNome') || '';
+    }
+    return '';
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [procedimentoParaExcluir, setProcedimentoParaExcluir] = useState<ProcedimentoRealizado | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
@@ -153,8 +159,7 @@ function ProcedimentosInner() {
   if (loading && procedimentos.length === 0) {
     return (
       <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sky-500 mr-3"></div>
-        Carregando dados dos procedimentos...
+        <AppleLikeLoader text="Carregando dados dos procedimentos..." />
       </div>
     );
   }
@@ -163,32 +168,32 @@ function ProcedimentosInner() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-3xl font-extrabold leading-9 text-gray-900 sm:text-4xl sm:truncate">
+          <h2 className="text-3xl font-extrabold leading-9 text-slate-900 sm:text-4xl sm:truncate">
             Gerenciar Procedimentos
           </h2>
-          <p className="mt-2 text-base text-gray-600">
+          <p className="mt-2 text-base text-slate-600">
             Visualize e gerencie todos os procedimentos realizados
           </p>
         </div>
         <div className="mt-4 flex md:mt-0 md:ml-4">
           <Link href="/procedimentos/novo" legacyBehavior>
-            <a className="inline-flex items-center px-5 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg cursor-pointer">
+            <a className="inline-flex items-center px-6 py-3 rounded-xl shadow bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-semibold text-base focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 ease-in-out transform hover:scale-105 hover:shadow-2xl">
               + Novo Procedimento
             </a>
           </Link>
         </div>
       </div>
 
-      <div className="flex space-x-4 mb-6">
+      <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
         <input 
           type="text" 
           placeholder="Buscar por Paciente, Procedimento ou Categoria" 
-          className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-base border-gray-300 rounded-md p-4"
+          className="bg-white/60 backdrop-blur-xl border border-white/30 shadow rounded-xl p-4 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 block w-full sm:text-base text-slate-700 placeholder-slate-400 transition-all duration-200"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
         <select 
-          className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-1/4 sm:text-base border-gray-300 rounded-md p-4"
+          className="bg-white/60 backdrop-blur-xl border border-white/30 shadow rounded-xl p-4 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 block w-full sm:w-1/4 sm:text-base text-slate-700 transition-all duration-200"
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value)}
         >
@@ -199,24 +204,24 @@ function ProcedimentosInner() {
         </select>
         <button 
           onClick={() => { setSearchTerm(''); setCategoriaFiltro(''); }}
-          className="inline-flex items-center px-3 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300 ease-in-out transform hover:scale-105 hover:shadow-lg cursor-pointer"
+          className="inline-flex items-center px-4 py-2 rounded-xl shadow bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 hover:shadow-2xl"
         >
           Limpar Filtros
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {procedimentosFiltrados.map((proc) => (
-          <div key={proc.id} className="relative bg-white shadow rounded-lg p-6 transition-transform transform hover:scale-105 hover:shadow-lg">
+          <div key={proc.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
             <div className="flex justify-between items-start mb-0">
               <div className="flex-1">
                 <h3 
-                  className="text-lg font-bold text-gray-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer"
+                  className="text-lg font-bold text-slate-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer transition-colors"
                   onClick={() => router.push(`/procedimentos/editar/${proc.id}`)}
                 >
                   {proc.procedimento_nome}
                 </h3>
-                <p className="text-base font-bold text-gray-900 mb-2">
+                <p className="text-base font-bold text-slate-700 mb-2">
                   {proc.categoria_nome}
                 </p>
               </div>
@@ -226,7 +231,7 @@ function ProcedimentosInner() {
                     e.preventDefault();
                     router.push(`/procedimentos/editar/${proc.id}`);
                   }} 
-                  className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                  className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-blue-600 hover:text-blue-800 hover:shadow-lg transition-all"
                 >
                   <PencilIcon className="h-5 w-5" />
                 </button>
@@ -235,16 +240,16 @@ function ProcedimentosInner() {
                     e.preventDefault();
                     openModal(proc);
                   }} 
-                  className="text-red-600 hover:text-red-800 cursor-pointer"
+                  className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-red-600 hover:text-red-800 hover:shadow-lg transition-all"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
             </div>
             <div>
-              <p className="text-sm text-gray-500 mb-1"><span className="font-bold">Nome:</span> {proc.paciente_nome}</p>
-              <p className="text-sm text-gray-500 mb-1"><span className="font-bold">Data:</span> {formatarDataLista(proc.data_procedimento)}</p>
-              <p className="text-sm text-gray-500"><span className="font-bold">Valor:</span> {formatarValor(proc.valor_cobrado)}</p>
+              <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Nome:</span> {proc.paciente_nome}</p>
+              <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Data:</span> {formatarDataLista(proc.data_procedimento)}</p>
+              <p className="text-sm text-slate-600"><span className="font-bold">Valor:</span> {formatarValor(proc.valor_cobrado)}</p>
             </div>
           </div>
         ))}
@@ -262,7 +267,7 @@ function ProcedimentosInner() {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-black bg-opacity-30 transition-opacity" />
+              <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm transition-opacity" />
             </Transition.Child>
 
             <Transition.Child
@@ -274,14 +279,14 @@ function ProcedimentosInner() {
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div className="relative transform overflow-hidden rounded-2xl bg-white/90 backdrop-blur-xl px-6 pb-6 pt-7 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                    <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    <Dialog.Title as="h3" className="text-2xl font-bold leading-6 text-slate-900 mb-2">
                       Confirmar Exclusão
                     </Dialog.Title>
                     <div className="mt-2">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-base text-slate-700">
                         Tem certeza que deseja excluir o procedimento "{procedimentoParaExcluir?.procedimento_nome}"? Esta ação não pode ser desfeita.
                       </p>
                     </div>
@@ -290,14 +295,14 @@ function ProcedimentosInner() {
                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
+                    className="inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2 text-base font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
                     onClick={confirmDelete}
                   >
                     Excluir
                   </button>
                   <button
                     type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                    className="mt-3 inline-flex w-full justify-center rounded-md bg-slate-200 px-4 py-2 text-base font-semibold text-slate-800 shadow-sm hover:bg-slate-300 sm:mt-0 sm:w-auto"
                     onClick={closeModal}
                   >
                     Cancelar

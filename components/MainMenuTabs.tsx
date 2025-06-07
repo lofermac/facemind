@@ -20,9 +20,8 @@ export default function MainMenuTabs() {
   if (!pathname) return null;
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200">
-      {/* Adicionado justify-center para centralizar as abas se elas não ocuparem toda a largura */}
-      <nav className="max-w-7xl mx-auto -mb-px flex justify-center space-x-8 px-4 sm:px-6 lg:px-8" aria-label="Tabs">
+    <div className="bg-white/60 backdrop-blur-xl shadow border-b border-white/10">
+      <nav className="max-w-7xl mx-auto -mb-px flex justify-center space-x-8 px-4 sm:px-6 lg:px-8 h-16 items-center" aria-label="Tabs">
         {tabs.map((tab) => {
           const effectiveIsActive = tab.href === '/dashboard' ? pathname === tab.href : pathname.startsWith(tab.href);
 
@@ -30,15 +29,15 @@ export default function MainMenuTabs() {
             <Link key={tab.name} href={tab.href} legacyBehavior> 
               <a
                 className={`
-                  whitespace-nowrap py-4 px-1 border-b-2 
-                  font-medium text-sm transition-colors duration-150 ease-in-out
+                  whitespace-nowrap py-2 px-4 rounded-xl font-medium text-base transition-all duration-200
                   ${
                     effectiveIsActive
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow border-none scale-105'
+                      : 'text-slate-600 hover:text-blue-700 hover:bg-white/70 border-none'
                   }
                 `}
                 aria-current={effectiveIsActive ? 'page' : undefined}
+                style={{ boxShadow: effectiveIsActive ? '0 2px 16px 0 rgba(30, 64, 175, 0.10)' : undefined }}
               >
                 {tab.name}
               </a>

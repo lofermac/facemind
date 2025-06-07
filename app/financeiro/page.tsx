@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabase } from '../../utils/supabaseClient';
 import { PiggyBank, Coins, LineChart, Percent, ListChecks, Package, FlaskConical, Building2 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line
 } from 'recharts';
 import { BarProps } from 'recharts';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 interface ProcedimentoFinanceiro {
   id: string;
@@ -30,12 +32,10 @@ function formatarValor(valor: number | null): string {
   return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-const CustomBar = (props: BarProps & { barColor: string; gradientId: string }) => {
-  const { fill, barColor, gradientId, ...rest } = props;
-  return <Bar fill={`url(#${gradientId})`} {...rest} />;
-};
+const mesesNomes = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export default function FinanceiroPage() {
   const [procedimentos, setProcedimentos] = useState<ProcedimentoFinanceiro[]>([]);
@@ -45,7 +45,7 @@ export default function FinanceiroPage() {
   const [filtroMes, setFiltroMes] = useState(0); // 0 = todos os meses
   const [categorias, setCategorias] = useState<string[]>([]);
   const [anos, setAnos] = useState<number[]>([]);
-  const [abaSelecionada, setAbaSelecionada] = useState<'overview' | 'smart'>('smart');
+  const [abaSelecionada, setAbaSelecionada] = useState<'overview' | 'select'>('select');
 
   useEffect(() => {
     async function fetchProcedimentos() {
@@ -82,12 +82,12 @@ export default function FinanceiroPage() {
     fetchProcedimentos();
   }, []);
 
-  // Filtros complexos para os cards (ano, mês, categoria)
+  // Filtro correto: só traz procedimentos do mês e ano selecionados (ou todos se filtroMes=0)
   const procedimentosFiltrados = procedimentos.filter(p => {
     if (!p.data_procedimento) return false;
     const data = new Date(p.data_procedimento);
-    const matchAno = filtroAno ? data.getFullYear() === filtroAno : true;
-    const matchMes = filtroMes ? data.getMonth() + 1 === filtroMes : true;
+    const matchAno = filtroAno ? data.getUTCFullYear() === filtroAno : true;
+    const matchMes = filtroMes > 0 ? (data.getUTCMonth() + 1) === filtroMes : true;
     const matchCategoria = filtroCategoria ? p.categoria_nome === filtroCategoria : true;
     return matchAno && matchMes && matchCategoria;
   });
@@ -146,107 +146,136 @@ export default function FinanceiroPage() {
     <div className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-extrabold leading-9 text-gray-900 sm:text-4xl sm:truncate">Financeiro</h1>
-          <p className="mt-2 text-base text-gray-600">Visualize e gerencie todos os dados financeiros da clínica</p>
+          <h1 className="text-3xl font-extrabold leading-9 text-slate-900 sm:text-4xl sm:truncate">Financeiro</h1>
+          <p className="mt-2 text-base text-slate-600">Visualize e gerencie todos os dados financeiros da clínica</p>
         </div>
         {/* Menu de abas sutil no topo */}
-        <div className="flex items-center mb-2">
-          <div className="flex space-x-2 bg-slate-100 rounded-full p-1 shadow-sm text-sm">
-            <button
-              className={`px-4 py-1 rounded-full transition-colors duration-150 ${abaSelecionada === 'overview' ? 'bg-white text-blue-600 shadow' : 'text-gray-500 hover:text-blue-600'}`}
-              onClick={() => setAbaSelecionada('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={`px-4 py-1 rounded-full transition-colors duration-150 ${abaSelecionada === 'smart' ? 'bg-white text-green-600 shadow' : 'text-gray-500 hover:text-green-600'}`}
-              onClick={() => setAbaSelecionada('smart')}
-            >
-              Smart
-            </button>
+        <div className="flex flex-col gap-6 mb-8 w-full">
+          <div className="flex flex-row w-full items-center justify-between gap-6 flex-wrap">
+            <div className="flex items-center">
+              <div className="flex space-x-2 bg-white/70 backdrop-blur-xl rounded-full p-2 shadow-lg border border-white/30">
+                <button
+                  className={`px-6 py-2 rounded-full font-semibold text-base transition-all duration-200
+                    ${abaSelecionada === 'overview'
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white shadow-lg scale-105'
+                      : 'text-slate-600 hover:text-blue-700 hover:bg-white/80'}
+                  `}
+                  style={{ boxShadow: abaSelecionada === 'overview' ? '0 2px 16px 0 rgba(30, 64, 175, 0.10)' : undefined }}
+                  onClick={() => setAbaSelecionada('overview')}
+                >
+                  Overview
+                </button>
+                <button
+                  className={`px-6 py-2 rounded-full font-semibold text-base transition-all duration-200
+                    ${abaSelecionada === 'select'
+                      ? 'bg-gradient-to-r from-green-400 to-green-600 text-white shadow-lg scale-105'
+                      : 'text-slate-600 hover:text-green-700 hover:bg-white/80'}
+                  `}
+                  style={{ boxShadow: abaSelecionada === 'select' ? '0 2px 16px 0 rgba(22, 163, 74, 0.10)' : undefined }}
+                  onClick={() => setAbaSelecionada('select')}
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+            {abaSelecionada === 'select' && (
+              <div className="flex flex-wrap gap-6 items-center justify-end w-full md:w-auto mt-4 md:mt-0">
+                <select
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[120px]"
+                  value={filtroAno}
+                  onChange={e => setFiltroAno(Number(e.target.value))}
+                >
+                  {anos.map(ano => (
+                    <option key={ano} value={ano}>{ano}</option>
+                  ))}
+                </select>
+                <select
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[180px]"
+                  value={filtroMes}
+                  onChange={e => setFiltroMes(Number(e.target.value))}
+                >
+                  <option value={0}>Todos os Meses</option>
+                  {mesesNomes.map((mes, idx) => (
+                    <option key={mes} value={idx + 1}>{mes}</option>
+                  ))}
+                </select>
+                <select
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[200px]"
+                  value={filtroCategoria}
+                  onChange={e => setFiltroCategoria(e.target.value)}
+                >
+                  <option value="">Todas as Categorias</option>
+                  {categorias.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
-        {/* Filtros avançados: só aparecem na aba Smart */}
-        {abaSelecionada === 'smart' && (
-          <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-6">
-            <select
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full md:w-auto sm:text-base border-gray-300 rounded-md p-3"
-              value={filtroAno}
-              onChange={e => setFiltroAno(Number(e.target.value))}
-            >
-              {anos.map(ano => (
-                <option key={ano} value={ano}>{ano}</option>
-              ))}
-            </select>
-            <select
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full md:w-auto sm:text-base border-gray-300 rounded-md p-3"
-              value={filtroMes}
-              onChange={e => setFiltroMes(Number(e.target.value))}
-            >
-              <option value={0}>Todos os Meses</option>
-              {mesesNomes.map((mes, idx) => (
-                <option key={mes} value={idx + 1}>{mes}</option>
-              ))}
-            </select>
-            <select
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full md:w-auto sm:text-base border-gray-300 rounded-md p-3"
-              value={filtroCategoria}
-              onChange={e => setFiltroCategoria(e.target.value)}
-            >
-              <option value="">Todas as Categorias</option>
-              {categorias.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {abaSelecionada === 'smart' && (
+        {abaSelecionada === 'select' && (
           <>
             {/* Primeira linha: Faturamento, Custos, Lucro, Margem de Lucro */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <PiggyBank className="w-10 h-10 text-green-500 mb-2" />
-                <div className="text-gray-500 text-sm">Faturamento</div>
-                <div className="text-2xl font-bold">{formatarValor(totalFaturado)}</div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <PiggyBank className="w-7 h-7 text-green-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Faturamento</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalFaturado)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <Coins className="w-10 h-10 text-red-500 mb-2" />
-                <div className="text-gray-500 text-sm">Custos</div>
-                <div className="text-2xl font-bold">{formatarValor(totalCustos)}</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <Coins className="w-7 h-7 text-red-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Custos</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustos)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <LineChart className="w-10 h-10 text-blue-500 mb-2" />
-                <div className="text-gray-500 text-sm">Lucro</div>
-                <div className="text-2xl font-bold">{formatarValor(lucroPeriodo)}</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <LineChart className="w-7 h-7 text-blue-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Lucro</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(lucroPeriodo)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <Percent className="w-10 h-10 text-yellow-500 mb-2" />
-                <div className="text-gray-500 text-sm">Margem de Lucro</div>
-                <div className="text-2xl font-bold">{margemLucro.toFixed(1)}%</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <Percent className="w-7 h-7 text-yellow-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Margem de Lucro</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{margemLucro.toFixed(1)}%</div>
               </div>
             </div>
             {/* Segunda linha: Procedimentos, Custo com Produtos, Custo com Insumos, Custo com Sala */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <ListChecks className="w-10 h-10 text-purple-500 mb-2" />
-                <div className="text-gray-500 text-sm">Procedimentos</div>
-                <div className="text-2xl font-bold">{procedimentosFiltrados.length}</div>
-                <div className="text-gray-400 text-xs mt-1">Ticket Médio: {formatarValor(ticketMedio)}</div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <ListChecks className="w-7 h-7 text-purple-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Procedimentos</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{procedimentosFiltrados.length}</div>
+                <div className="text-slate-400 text-xs mt-1">Ticket Médio: {formatarValor(ticketMedio)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <Package className="w-10 h-10 text-red-500 mb-2" />
-                <div className="text-gray-500 text-sm">Custo com Produtos</div>
-                <div className="text-2xl font-bold">{formatarValor(totalCustoProdutos)}</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <Package className="w-7 h-7 text-red-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Custo com Produtos</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustoProdutos)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <FlaskConical className="w-10 h-10 text-yellow-500 mb-2" />
-                <div className="text-gray-500 text-sm">Custo com Insumos</div>
-                <div className="text-2xl font-bold">{formatarValor(totalCustoInsumos)}</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <FlaskConical className="w-7 h-7 text-yellow-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Custo com Insumos</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustoInsumos)}</div>
               </div>
-              <div className="bg-white rounded-lg shadow p-6 h-40 flex flex-col items-center justify-center text-center">
-                <Building2 className="w-10 h-10 text-blue-500 mb-2" />
-                <div className="text-gray-500 text-sm">Custo com Sala</div>
-                <div className="text-2xl font-bold">{formatarValor(totalCustoSala)}</div>
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+                <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
+                  <Building2 className="w-7 h-7 text-blue-500" />
+                </div>
+                <div className="text-slate-600 text-base font-semibold">Custo com Sala</div>
+                <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustoSala)}</div>
               </div>
             </div>
           </>
@@ -312,33 +341,50 @@ export default function FinanceiroPage() {
           </div>
         )}
         {/* Tabela de Procedimentos: só aparece na aba Smart */}
-        {abaSelecionada === 'smart' && (
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100 mt-6">
-            <h2 className="text-2xl font-bold text-blue-700 mb-6 flex items-center gap-2">
+        {abaSelecionada === 'select' && (
+          <div className="bg-white/60 backdrop-blur-2xl shadow-2xl rounded-3xl p-8 border border-white/20 mt-6" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.75) 60%, rgba(236,245,255,0.7) 100%)'}}>
+            <h2 className="text-2xl font-bold text-blue-700 mb-6 flex items-center gap-2 drop-shadow-sm">
               <ListChecks className="w-7 h-7 text-blue-400" /> Procedimentos
             </h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full text-center rounded-xl overflow-hidden">
-                <thead className="bg-slate-50">
+              <table className="min-w-full text-center rounded-3xl overflow-hidden">
+                <thead className="bg-white/90 backdrop-blur-xl shadow-sm">
                   <tr>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Paciente</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Procedimento</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Categoria</th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th className="px-7 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-left rounded-tl-2xl shadow-sm">Data</th>
+                    <th className="px-7 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-left">Paciente</th>
+                    <th className="px-7 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-left">Categoria</th>
+                    <th className="px-7 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-left">Procedimento</th>
+                    <th className="px-7 py-4 text-xs font-semibold text-slate-700 uppercase tracking-wider text-left rounded-tr-2xl shadow-sm">Valor</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-100">
+                <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="text-center py-8">Carregando...</td></tr>
-                  ) : procedimentosFiltrados.slice(0, 10).map(proc => (
-                    <tr key={proc.id} className="hover:bg-blue-50 transition rounded-xl">
-                      <td className="px-6 py-3 whitespace-nowrap font-medium text-gray-700">{formatarData(proc.data_procedimento)}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-gray-700">{proc.paciente_nome}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-blue-700 font-semibold">{proc.procedimento_nome}</td>
-                      <td className="px-6 py-3 whitespace-nowrap text-gray-500">{proc.categoria_nome}</td>
-                      <td className="px-6 py-3 whitespace-nowrap font-bold text-green-600">{formatarValor(proc.valor_cobrado)}</td>
-                    </tr>
+                    <tr><td colSpan={5} className="py-12"><AppleLikeLoader text="Carregando dados dos procedimentos..." /></td></tr>
+                  ) : procedimentosFiltrados.slice(0, 10).map((proc, idx, arr) => (
+                    <Link key={proc.id} href={`/procedimentos/editar/${proc.id}`} legacyBehavior>
+                      <tr
+                        className={`transition-all duration-200 group cursor-pointer ${idx === arr.length - 1 ? '' : 'border-b border-white/20'} hover:shadow-lg hover:-translate-y-0.5 hover:bg-white/80 hover:backdrop-blur-2xl`}
+                        style={{ transitionProperty: 'box-shadow, background, transform' }}
+                      >
+                        <td className="px-7 py-4 whitespace-nowrap font-semibold text-slate-700 group-hover:text-blue-700 transition-colors duration-150 text-left rounded-l-2xl">
+                          {formatarData(proc.data_procedimento)}
+                        </td>
+                        <td className="px-7 py-4 whitespace-nowrap text-slate-700 text-left">
+                          {proc.paciente_nome}
+                        </td>
+                        <td className="px-7 py-4 whitespace-nowrap text-slate-500 text-left">
+                          {proc.categoria_nome}
+                        </td>
+                        <td className="px-7 py-4 whitespace-nowrap font-semibold text-slate-700 text-left">
+                          {proc.procedimento_nome}
+                        </td>
+                        <td className="px-7 py-4 whitespace-nowrap font-bold text-green-600 text-left drop-shadow-sm rounded-r-2xl">
+                          <span className="inline-block bg-green-50/80 text-green-700 px-3 py-1 rounded-xl font-semibold shadow-sm text-base">
+                            {formatarValor(proc.valor_cobrado)}
+                          </span>
+                        </td>
+                      </tr>
+                    </Link>
                   ))}
                 </tbody>
               </table>

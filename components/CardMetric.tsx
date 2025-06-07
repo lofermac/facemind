@@ -10,18 +10,18 @@ interface CardMetricProps {
 
 export default function CardMetric({ title, value, IconComponent, iconColor = "text-gray-400" }: CardMetricProps) {
   return (
-    <div className="bg-white shadow-sm rounded-md p-5 group hover:shadow-lg transition-all duration-200 ease-in-out transform hover:-translate-y-1"> {/* Efeitos de hover */}
+    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
       <div className="flex items-center justify-between">
         <div>
-          <dt className="text-xs font-medium text-gray-500 truncate group-hover:text-blue-600 transition-colors duration-200 ease-in-out"> {/* Cor do título no hover */}
+          <dt className="text-xs font-semibold text-slate-600 truncate group-hover:text-blue-600 transition-colors duration-200 ease-in-out">
             {title}
           </dt>
-          <dd className="mt-1 text-2xl font-semibold text-gray-800">
+          <dd className="mt-1 text-3xl font-bold text-slate-900 drop-shadow-sm">
             {value}
           </dd>
         </div>
-        <div className={`${iconColor} group-hover:scale-110 transition-transform duration-200 ease-in-out`}> {/* Efeito no ícone */}
-          <IconComponent className="h-5 w-5" aria-hidden="true" />
+        <div className={`w-10 h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow-sm ${iconColor} group-hover:scale-110 transition-transform duration-200 ease-in-out`}>
+          <IconComponent className="h-6 w-6" aria-hidden="true" />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import CardPerformance from '@/components/CardPerformance';
 import CardTopProcedimentos from '@/components/CardTopProcedimentos'; 
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 import { 
   UsersIcon, CheckCircleIcon, BellIcon, UserMinusIcon, ClockIcon,
@@ -248,8 +249,7 @@ export default function DashboardPage() {
 
   if (loading) return (
     <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-sky-500 mr-3"></div>
-      Carregando dados do Dashboard...
+      <AppleLikeLoader text="Carregando dados do Dashboard..." />
     </div>
   );
   
