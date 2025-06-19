@@ -165,7 +165,8 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
             <div>
               <label htmlFor="nome" className="block text-sm font-medium text-gray-700">Nome <span className="text-red-500">*</span></label>
               <input type="text" name="nome" id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+                autoComplete="name" inputMode="text"
                 placeholder="Nome completo" />
             </div>
             <div>
@@ -201,13 +202,14 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">E-mail</label>
             <input type="email" name="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+              autoComplete="email" inputMode="email"
               placeholder="email@exemplo.com" />
           </div>
           <div>
             <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">Observações</label>
             <textarea name="observacoes" id="observacoes" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} rows={3}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px]"
               placeholder="Digite observações..."></textarea>
           </div>
           {isEditMode && (

@@ -1,52 +1,80 @@
 "use client";
 import dynamic from "next/dynamic";
+import { useState, Suspense, lazy } from "react";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
+import Image from "next/image";
 const Particles = dynamic(() => import("@tsparticles/react").then(mod => mod.Particles), { ssr: false });
+const DepoimentosCarousel = lazy(() => import("../components/DepoimentosCarousel"));
 
 export default function LandingPage() {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#1a1440] via-[#2a1a5e] to-[#3a206e] relative overflow-x-hidden">
-      {/* Partículas animadas no fundo */}
-      <Particles
-        id="tsparticles-landing"
-        options={{
-          background: { color: "transparent" },
-          fpsLimit: 60,
-          particles: {
-            color: { value: ["#a78bfa", "#f472b6", "#fff"] },
-            links: { enable: true, color: "#fff", opacity: 0.06 },
-            move: { enable: true, speed: 0.4 },
-            number: { value: 24 },
-            opacity: { value: 0.10 },
-            shape: { type: "circle" },
-            size: { value: { min: 1, max: 3 } },
-          },
-          detectRetina: true,
-        }}
-        className="absolute inset-0 z-0 pointer-events-none"
-      />
+      {/* Partículas animadas no fundo (desligadas em telas < sm) */}
+      <div className="hidden sm:block">
+        <Particles
+          id="tsparticles-landing"
+          options={{
+            background: { color: "transparent" },
+            fpsLimit: 60,
+            particles: {
+              color: { value: ["#a78bfa", "#f472b6", "#fff"] },
+              links: { enable: true, color: "#fff", opacity: 0.06 },
+              move: { enable: true, speed: 0.4 },
+              number: { value: 24 },
+              opacity: { value: 0.10 },
+              shape: { type: "circle" },
+              size: { value: { min: 1, max: 3 } },
+            },
+            detectRetina: true,
+          }}
+          className="absolute inset-0 z-0 pointer-events-none"
+        />
+      </div>
       {/* HEADER PREMIUM FIXO */}
-      <header className="fixed top-0 left-0 w-full z-30 flex items-center justify-between px-8 py-4 bg-gradient-to-r from-[#1a1440]/80 via-[#2a1a5e]/80 to-[#3a206e]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg animate-fade-in-header h-20">
+      <header className="fixed top-0 left-0 w-full z-30 flex items-center justify-between px-6 sm:px-8 py-4 bg-gradient-to-r from-[#1a1440]/80 via-[#2a1a5e]/80 to-[#3a206e]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg animate-fade-in-header h-20">
         <div className="flex items-center gap-3 h-full">
-          <img src="/logo.png" alt="Logo FaceMind" className="h-10 w-auto drop-shadow-xl" />
+          <Image src="/logo.png" alt="Logo FaceMind" width={120} height={40} priority className="h-10 w-auto drop-shadow-xl" />
         </div>
-        <nav className="flex-1 flex items-center justify-center gap-8 h-full">
+        {/* Links Desktop */}
+        <nav className="hidden md:flex flex-1 items-center justify-center gap-8 h-full">
           <a href="#recursos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Recursos</a>
           <a href="#planos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Planos</a>
           <a href="#depoimentos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Depoimentos</a>
           <a href="#contato" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Contato</a>
         </nav>
-        <a href="/profissionais/login" className="px-7 py-2 rounded-lg bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-xl hover:from-blue-500 hover:to-blue-700 hover:scale-[1.07] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 border border-blue-300/40 relative overflow-hidden group">
-          <span className="relative z-10">Login</span>
-          <span className="absolute left-0 top-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-        </a>
+        {/* Botões */}
+        <div className="flex items-center gap-4">
+          {/* Hamburger Mobile */}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white/90 focus:outline-none">
+            {menuOpen ? <XMarkIcon className="h-8 w-8" /> : <Bars3Icon className="h-8 w-8" />}
+          </button>
+          <a href="/profissionais/login" className="hidden sm:inline-flex px-5 py-2 rounded-lg bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-xl hover:from-blue-500 hover:to-blue-700 hover:scale-[1.07] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 border border-blue-300/40 relative overflow-hidden group">
+            <span className="relative z-10">Login</span>
+            <span className="absolute left-0 top-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
+          </a>
+        </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {menuOpen && (
+        <div className="fixed top-20 left-0 w-full bg-gradient-to-b from-[#1a1440]/90 via-[#2a1a5e]/90 to-[#3a206e]/90 backdrop-blur-xl border-b border-white/10 z-30 md:hidden animate-fade-in">
+          <div className="flex flex-col items-center py-6 space-y-6">
+            <a onClick={() => setMenuOpen(false)} href="#recursos" className="text-white text-lg font-medium">Recursos</a>
+            <a onClick={() => setMenuOpen(false)} href="#planos" className="text-white text-lg font-medium">Planos</a>
+            <a onClick={() => setMenuOpen(false)} href="#depoimentos" className="text-white text-lg font-medium">Depoimentos</a>
+            <a onClick={() => setMenuOpen(false)} href="#contato" className="text-white text-lg font-medium">Contato</a>
+            <a onClick={() => setMenuOpen(false)} href="/profissionais/login" className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-lg">Login</a>
+          </div>
+        </div>
+      )}
 
       {/* HERO SECTION */}
       <section className="relative z-10 flex flex-col items-center justify-center pt-32 pb-20 px-4 animate-fade-in">
         {/* Badge de novidade */}
         <span className="mb-10 px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold text-base shadow-lg animate-bounce-in">✨ Novidade: IA Generativa GPT-4 Integrada</span>
         <div className="relative group">
-          <img src="/logo.png" alt="Logo FaceMind" className="h-20 w-auto mb-4 drop-shadow-2xl" />
+          <Image src="/logo.png" alt="Logo FaceMind" width={180} height={60} priority className="h-20 w-auto mb-4 drop-shadow-2xl" />
         </div>
         <h1 className="text-5xl md:text-6xl font-extrabold text-white text-center mb-2 tracking-tight animate-slide-up leading-tight" style={{ fontFamily: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
           O Futuro da <br />
@@ -186,27 +214,9 @@ export default function LandingPage() {
         <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-12 tracking-tight animate-fade-in">
           O que dizem nossos clientes
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              name: 'Dra. Camila Souza',
-              text: 'O FaceMind revolucionou a gestão da minha clínica. Interface linda, fácil de usar e suporte incrível!',
-            },
-            {
-              name: 'Clínica Estética Viva',
-              text: 'A automação de agendamentos e o controle financeiro são diferenciais que nunca vi em outro sistema.',
-            },
-            {
-              name: 'Dr. Rafael Lima',
-              text: 'Simplesmente o melhor sistema para clínicas. Moderno, rápido e seguro!',
-            },
-          ].map((item, i) => (
-            <div key={i} className="bg-white/10 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/10 animate-fade-in min-w-0" style={{ animationDelay: `${0.3 + i * 0.1}s` }}>
-              <p className="text-slate-100 text-lg mb-4">“{item.text}”</p>
-              <span className="block text-fuchsia-200 font-semibold">{item.name}</span>
-            </div>
-          ))}
-        </div>
+        <Suspense fallback={<div className="text-center text-white/80 py-12">Carregando depoimentos...</div>}>
+          <DepoimentosCarousel />
+        </Suspense>
       </section>
 
       {/* CTA FINAL */}

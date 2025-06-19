@@ -20,7 +20,7 @@ export default function MainMenuTabs() {
   if (!pathname) return null;
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow border-b border-white/10">
+    <div className="hidden md:block bg-white/60 backdrop-blur-xl shadow border-b border-white/10">
       <nav className="max-w-7xl mx-auto -mb-px flex justify-center space-x-8 px-4 sm:px-6 lg:px-8 h-16 items-center" aria-label="Tabs">
         {tabs.map((tab) => {
           const effectiveIsActive = tab.href === '/dashboard' ? pathname === tab.href : pathname.startsWith(tab.href);

@@ -8,6 +8,7 @@ import CardTopProcedimentos from '@/components/CardTopProcedimentos';
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 import { 
   UsersIcon, CheckCircleIcon, BellIcon, UserMinusIcon, ClockIcon,
@@ -267,6 +268,13 @@ export default function DashboardPage() {
     { title: "Procedimentos (Mês)", value: dashboardData.procedimentosMesAtual, IconComponent: ClipboardDocumentListIcon, iconColor: "text-gray-500" },
   ];
 
+  // Dados para o gráfico de pizza de procedimentos ativos/inativos
+  const dadosProcedimentos = [
+    { nome: 'Ativos', valor: dashboardData.pacientesAtivosProcedimento },
+    { nome: 'Inativos', valor: dashboardData.pacientesInativosBanco },
+  ];
+  const CORES = ['#34d399', '#64748b']; // Verde para ativos, cinza para inativos
+
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -281,23 +289,34 @@ export default function DashboardPage() {
           ))}
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1"> 
-            <CardPerformance
-              title="Performance do Faturamento" 
-              currentValue={formatCurrency(dashboardData.faturamentoMesAtual)}
-              percentageChange={`${dashboardData.variacaoPercentualFaturamento.toFixed(2)}%`}
-              isPositive={dashboardData.isVariacaoFaturamentoPositiva}
-              periodDescription={`vs. média dos últimos 6 meses (${formatCurrency(dashboardData.mediaFaturamento6MesesAnteriores)})`}
-              Icon={dashboardData.isVariacaoFaturamentoPositiva ? ArrowTrendingUpIcon : ArrowTrendingDownIcon}
-            />
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            {/* Gráfico de Procedimentos Ativos/Inativos */}
+            <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 border border-white/30 flex flex-col items-center justify-center">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Procedimentos Ativos x Inativos</h3>
+              <div className="w-full h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dadosProcedimentos}
+                      dataKey="valor"
+                      nameKey="nome"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {dadosProcedimentos.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CORES[index % CORES.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: number, name: string) => [`${value} procedimentos`, name]} />
+                    <Legend verticalAlign="bottom" iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
           </div>
-          <div className="lg:col-span-2"> 
-            <CardTopProcedimentos 
-              title="Top 3 Procedimentos (Mês Atual)" 
-              subtitle="Procedimentos mais realizados este mês"
-              procedimentos={dashboardData.topProcedimentos} 
-              Icon={SparklesIcon} 
-            />
           </div>
         </div>
       </div>

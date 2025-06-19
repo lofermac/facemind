@@ -475,25 +475,29 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
           <div>
             <label htmlFor="valorCobrado" className="block text-sm font-medium text-gray-700">Valor Cobrado <span className="text-red-500">*</span></label>
             <input type="number" name="valorCobrado" id="valorCobrado" value={valorCobrado} onChange={(e) => setValorCobrado(e.target.value)} required  step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
               placeholder="0.00"/>
           </div>
           <div>
             <label htmlFor="custoProduto" className="block text-sm font-medium text-gray-700">Custo do Produto</label> 
             <input type="number" name="custoProduto" id="custoProduto" value={custoProduto} onChange={(e) => setCustoProduto(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
               placeholder="0.00"/>
           </div>
           <div>
             <label htmlFor="custoInsumos" className="block text-sm font-medium text-gray-700">Custo dos Insumos</label>
             <input type="number" name="custoInsumos" id="custoInsumos" value={custoInsumos} onChange={(e) => setCustoInsumos(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
               placeholder="0.00"/>
           </div>
           <div>
             <label htmlFor="custoSala" className="block text-sm font-medium text-gray-700">Custo da Sala</label>
             <input type="number" name="custoSala" id="custoSala" value={custoSala} onChange={(e) => setCustoSala(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
               placeholder="0.00"/>
           </div>
         </div>
@@ -506,7 +510,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         <div>
           <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">Observações</label>
           <textarea id="observacoes" name="observacoes" rows={4} value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px]"
             placeholder="Comentários"></textarea>
         </div>
 

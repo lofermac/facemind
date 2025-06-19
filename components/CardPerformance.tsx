@@ -22,7 +22,7 @@ export default function CardPerformance({
   const iconColor = isPositive ? 'text-green-500' : 'text-red-500'; 
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 h-full flex flex-col group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
+    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-4 sm:p-6 h-full flex flex-col group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
       <div>
         <dt className="text-xs font-semibold text-slate-600 truncate group-hover:text-blue-600 transition-colors duration-200 ease-in-out">
           {title}

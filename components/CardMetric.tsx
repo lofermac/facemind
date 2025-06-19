@@ -10,7 +10,7 @@ interface CardMetricProps {
 
 export default function CardMetric({ title, value, IconComponent, iconColor = "text-gray-400" }: CardMetricProps) {
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
+    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-4 sm:p-6 group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
       <div className="flex items-center justify-between">
         <div>
           <dt className="text-xs font-semibold text-slate-600 truncate group-hover:text-blue-600 transition-colors duration-200 ease-in-out">

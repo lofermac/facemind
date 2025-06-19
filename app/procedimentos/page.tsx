@@ -10,6 +10,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import '../styles/procedimentos.css';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
+import dynamic from 'next/dynamic';
 
 interface ProcedimentoRealizado {
   id: string;
@@ -21,6 +22,7 @@ interface ProcedimentoRealizado {
   procedimento_nome: string | null;
   valor_cobrado: number | null;
   duracao_efeito_meses: number | null;
+  status_calculado?: string;
 }
 
 function formatarDataLista(data: string | null): string {
@@ -29,9 +31,73 @@ function formatarDataLista(data: string | null): string {
 }
 
 function formatarValor(valor: number | null): string {
-  if (valor === null || valor === undefined) return 'R$ -';
-  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  if (valor === null || valor === undefined) return 'R$ 0,00';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
 }
+
+function calcularStatusProcedimento(
+  dataProcedimento: string | null, 
+  duracaoMeses: number | null
+): { status: string; diasRestantes: number | null; cor: string; texto: string } {
+  if (!dataProcedimento || !duracaoMeses || duracaoMeses <= 0) {
+    return { status: 'sem_duracao', diasRestantes: null, cor: 'bg-gray-500', texto: 'Sem duração definida' };
+  }
+
+  const hojeUtc = new Date();
+  hojeUtc.setUTCHours(0, 0, 0, 0);
+
+  const dataRealizacao = new Date(dataProcedimento);
+  dataRealizacao.setUTCHours(0, 0, 0, 0);
+
+  const dataVencimento = new Date(dataRealizacao.getTime());
+  dataVencimento.setUTCMonth(dataVencimento.getUTCMonth() + duracaoMeses);
+
+  const diffDiasParaVencer = Math.floor((dataVencimento.getTime() - hojeUtc.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDiasParaVencer < 0) {
+    return { 
+      status: 'vencido', 
+      diasRestantes: Math.abs(diffDiasParaVencer), 
+      cor: 'bg-red-500', 
+      texto: `Vencido há ${Math.abs(diffDiasParaVencer)} dias` 
+    };
+  } else if (diffDiasParaVencer <= 30) {
+    return { 
+      status: 'proximo_vencimento', 
+      diasRestantes: diffDiasParaVencer, 
+      cor: 'bg-yellow-500', 
+      texto: `Vence em ${diffDiasParaVencer} dias` 
+    };
+  } else {
+    return { 
+      status: 'ativo', 
+      diasRestantes: diffDiasParaVencer, 
+      cor: 'bg-green-500', 
+      texto: `Ativo (${diffDiasParaVencer} dias restantes)` 
+    };
+  }
+}
+
+function SeloStatus({ cor, texto }: { cor: string; texto: string }) {
+  return (
+    <div
+      className={`absolute -top-4 right-4 z-20 px-5 py-1.5 rounded-full font-semibold text-sm shadow-lg border border-white/30 ${cor} flex items-center gap-2 backdrop-blur-xl bg-white/30 bg-clip-padding`} 
+      style={{
+        boxShadow: '0 2px 12px 0 rgba(30, 41, 59, 0.10)',
+        letterSpacing: 0.2,
+        minWidth: 0,
+        maxWidth: '90%',
+        transition: 'all 0.2s',
+      }}
+    >
+      <span className="drop-shadow-sm text-slate-900" style={{color: cor.includes('green') ? '#059669' : cor.includes('yellow') ? '#b45309' : cor.includes('red') ? '#dc2626' : '#334155'}}>
+        {texto}
+      </span>
+    </div>
+  );
+}
+
+const ProcedimentosCardList = dynamic(() => import('./ProcedimentosCardList'), { ssr: false });
 
 function ProcedimentosInner() {
   const searchParams = useSearchParams();
@@ -47,7 +113,34 @@ function ProcedimentosInner() {
   const [procedimentoParaExcluir, setProcedimentoParaExcluir] = useState<ProcedimentoRealizado | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState('');
   const [categorias, setCategorias] = useState<string[]>([]);
+  const [mapaDuracaoProcedimentos, setMapaDuracaoProcedimentos] = useState<Map<string, number | null>>(new Map());
   const router = useRouter();
+
+  async function fetchDuracoesProcedimentos() {
+    try {
+      const { data: tiposProcedimentoData, error: errorTipos } = await supabase
+        .from('procedimentos_tabela_valores') 
+        .select('nome_procedimento, duracao_efeito_meses');
+
+      if (errorTipos) {
+        console.error('Erro ao buscar durações dos tipos de procedimento:', errorTipos);
+        return;
+      }
+
+      const novoMapaDuracao = new Map<string, number | null>();
+      if (tiposProcedimentoData) {
+        tiposProcedimentoData.forEach(tipo => {
+          if (tipo.nome_procedimento) {
+            novoMapaDuracao.set(String(tipo.nome_procedimento).toLowerCase(), tipo.duracao_efeito_meses as number | null);
+          }
+        });
+      }
+      setMapaDuracaoProcedimentos(novoMapaDuracao);
+      console.log("Mapa de duração de procedimentos carregado:", novoMapaDuracao);
+    } catch (error) {
+      console.error('Erro ao buscar durações:', error);
+    }
+  }
 
   async function fetchProcedimentosComNomesPacientes() {
     setLoading(true);
@@ -115,6 +208,7 @@ function ProcedimentosInner() {
   }
 
   useEffect(() => {
+    fetchDuracoesProcedimentos();
     fetchProcedimentosComNomesPacientes();
     fetchCategorias();
   }, []);
@@ -210,49 +304,65 @@ function ProcedimentosInner() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {procedimentosFiltrados.map((proc) => (
-          <div key={proc.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
-            <div className="flex justify-between items-start mb-0">
-              <div className="flex-1">
-                <h3 
-                  className="text-lg font-bold text-slate-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer transition-colors"
-                  onClick={() => router.push(`/procedimentos/editar/${proc.id}`)}
-                >
-                  {proc.procedimento_nome}
-                </h3>
-                <p className="text-base font-bold text-slate-700 mb-2">
-                  {proc.categoria_nome}
-                </p>
+      {/* Lista mobile */}
+      <ProcedimentosCardList procedimentos={procedimentosFiltrados} />
+      {/* Grid desktop */}
+      <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {procedimentosFiltrados.map((proc) => {
+          const chaveLookup = String(proc.procedimento_nome).toLowerCase();
+          const duracaoMeses = mapaDuracaoProcedimentos.get(chaveLookup);
+          const statusInfo = calcularStatusProcedimento(proc.data_procedimento, duracaoMeses || null);
+
+          return (
+            <div key={proc.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
+              <SeloStatus cor={statusInfo.cor} texto={statusInfo.texto} />
+              
+              <div className="flex justify-between items-start mb-0">
+                <div className="flex-1">
+                  <h3 
+                    className="text-lg font-bold text-slate-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/procedimentos/editar/${proc.id}`)}
+                  >
+                    {proc.procedimento_nome}
+                  </h3>
+                  <p className="text-base font-bold text-slate-700 mb-2">
+                    {proc.categoria_nome}
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push(`/procedimentos/editar/${proc.id}`);
+                    }} 
+                    className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-blue-600 hover:text-blue-800 hover:shadow-lg transition-all"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openModal(proc);
+                    }} 
+                    className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-red-600 hover:text-red-800 hover:shadow-lg transition-all"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.push(`/procedimentos/editar/${proc.id}`);
-                  }} 
-                  className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-blue-600 hover:text-blue-800 hover:shadow-lg transition-all"
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openModal(proc);
-                  }} 
-                  className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-red-600 hover:text-red-800 hover:shadow-lg transition-all"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
+              <div>
+                <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Nome:</span> {proc.paciente_nome}</p>
+                <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Data:</span> {formatarDataLista(proc.data_procedimento)}</p>
+                <p className="text-sm text-slate-600"><span className="font-bold">Valor:</span> {formatarValor(proc.valor_cobrado)}</p>
+                {duracaoMeses && (
+                  <p className="text-sm text-slate-600 mt-1">
+                    <span className="font-bold">Duração:</span> {duracaoMeses} {duracaoMeses === 1 ? 'mês' : 'meses'}
+                  </p>
+                )}
               </div>
             </div>
-            <div>
-              <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Nome:</span> {proc.paciente_nome}</p>
-              <p className="text-sm text-slate-600 mb-1"><span className="font-bold">Data:</span> {formatarDataLista(proc.data_procedimento)}</p>
-              <p className="text-sm text-slate-600"><span className="font-bold">Valor:</span> {formatarValor(proc.valor_cobrado)}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <Transition.Root show={isModalOpen} as={React.Fragment}>
@@ -287,7 +397,7 @@ function ProcedimentosInner() {
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-base text-slate-700">
-                        Tem certeza que deseja excluir o procedimento "{procedimentoParaExcluir?.procedimento_nome}"? Esta ação não pode ser desfeita.
+                        Tem certeza que deseja excluir o procedimento &quot;{procedimentoParaExcluir?.procedimento_nome}&quot;? Esta ação não pode ser desfeita.
                       </p>
                     </div>
                   </div>

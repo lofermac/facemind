@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabaseClient';
 import dynamic from 'next/dynamic';
+import Image from "next/image";
 
 export default function ProfissionaisLoginPage() {
   const [email, setEmail] = useState('');
@@ -27,7 +28,7 @@ export default function ProfissionaisLoginPage() {
       <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-gradient-radial from-white/10 via-blue-400/10 to-transparent blur-3xl opacity-70 z-0" />
       {/* Card glassmorphism */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-md p-12 rounded-3xl bg-white/10 backdrop-blur-2xl shadow-2xl border border-white/20 animate-fade-in">
-        <img src="/logo.png" alt="Logo FaceMind" className="h-14 w-auto mb-8 drop-shadow-xl" />
+        <Image src="/logo.png" alt="Logo FaceMind" width={140} height={48} priority className="h-14 w-auto mb-8 drop-shadow-xl" />
         <h1 className="text-3xl font-semibold text-white mb-2 tracking-tight" style={{ fontFamily: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>Área do Profissional</h1>
         <p className="text-base text-slate-200 mb-8 text-center font-normal">Acesse sua área exclusiva para gerenciar seus atendimentos e procedimentos</p>
         <form onSubmit={handleLogin} className="w-full space-y-6">

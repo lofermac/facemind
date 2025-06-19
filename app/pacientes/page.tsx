@@ -283,7 +283,7 @@ export default function GerenciarPacientesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-3xl font-extrabold leading-9 text-slate-900 sm:text-4xl sm:truncate">
+          <h2 className="text-fluid-h1 text-slate-900">
             Gerenciar Pacientes
           </h2>
           <p className="mt-2 text-base text-slate-600">

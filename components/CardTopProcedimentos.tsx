@@ -16,7 +16,7 @@ interface CardTopProcedimentosProps {
 
 export default function CardTopProcedimentos({ title, subtitle, procedimentos, Icon, iconColor = "text-gray-400" }: CardTopProcedimentosProps) {
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 h-full group hover:shadow-2xl transition-all duration-200 ease-in-out border border-white/30">
+    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-4 sm:p-6 h-full group hover:shadow-2xl transition-all duration-200 ease-in-out border border-white/30">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xs font-semibold text-slate-600">

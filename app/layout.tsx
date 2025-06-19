@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { usePathname } from 'next/navigation';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 export default function RootLayout({
   children,
@@ -70,7 +71,8 @@ export default function RootLayout({
             </div>
           )
         ) : null}
-        <main>{children}</main>
+        <main className="pb-20 md:pb-0">{children}</main>
+        <MobileBottomNav />
         <Toaster richColors position="top-right" closeButton />
       </body>
     </html>

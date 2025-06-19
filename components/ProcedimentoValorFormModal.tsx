@@ -155,24 +155,24 @@ export default function ProcedimentoValorFormModal({
               Nome do Procedimento <span className="text-red-500">*</span>
             </label>
             <input type="text" name="nome-procedimento-tv" id="nome-procedimento-tv" value={nomeProcedimento} onChange={(e) => setNomeProcedimento(e.target.value)} required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ex: Aplicação de Toxina - Testa Completa" />
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" autoComplete="off" inputMode="text" placeholder="Ex: Aplicação de Toxina - Testa Completa" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label htmlFor="valor-pix-tv" className="block text-sm font-medium text-gray-700">Valor Pix</label>
               <input type="number" name="valor-pix-tv" id="valor-pix-tv" value={valorPix} onChange={(e) => setValorPix(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ex: 150.00" />
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 150.00" />
             </div>
             <div>
               <label htmlFor="valor-4x-tv" className="block text-sm font-medium text-gray-700">Valor 4x</label>
               <input type="number" name="valor-4x-tv" id="valor-4x-tv" value={valor4x} onChange={(e) => setValor4x(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ex: 160.00" />
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 160.00" />
             </div>
             <div>
               <label htmlFor="valor-6x-tv" className="block text-sm font-medium text-gray-700">Valor 6x</label>
               <input type="number" name="valor-6x-tv" id="valor-6x-tv" value={valor6x} onChange={(e) => setValor6x(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Ex: 165.00" />
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 165.00" />
             </div>
           </div>
           
@@ -188,7 +188,7 @@ export default function ProcedimentoValorFormModal({
               onChange={(e) => setDuracaoEfeitoMeses(e.target.value)}
               min="0"
               step="1" // Meses inteiros
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="numeric" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
               placeholder="Ex: 6"
             />
              <p className="mt-1 text-xs text-gray-500">Deixe em branco ou 0 se não aplicável.</p>
@@ -199,7 +199,7 @@ export default function ProcedimentoValorFormModal({
               Observações (Opcional)
             </label>
             <textarea name="observacoes-procedimento-tv" id="observacoes-procedimento-tv" rows={3} value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Detalhes sobre este item..."></textarea>
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px]" placeholder="Detalhes sobre este item..."></textarea>
           </div>
 
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 mt-5">

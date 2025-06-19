@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { BarProps } from 'recharts';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
+import FinanceiroCardList from './FinanceiroCardList';
 
 interface ProcedimentoFinanceiro {
   id: string;
@@ -342,11 +343,18 @@ export default function FinanceiroPage() {
         )}
         {/* Tabela de Procedimentos: só aparece na aba Smart */}
         {abaSelecionada === 'select' && (
-          <div className="bg-white/60 backdrop-blur-2xl shadow-2xl rounded-3xl p-8 border border-white/20 mt-6" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.75) 60%, rgba(236,245,255,0.7) 100%)'}}>
+          <div className="bg-white/60 backdrop-blur-2xl shadow-2xl rounded-3xl p-4 sm:p-8 border border-white/20 mt-6" style={{background: 'linear-gradient(135deg, rgba(255,255,255,0.75) 60%, rgba(236,245,255,0.7) 100%)'}}>
             <h2 className="text-2xl font-bold text-blue-700 mb-6 flex items-center gap-2 drop-shadow-sm">
               <ListChecks className="w-7 h-7 text-blue-400" /> Procedimentos
             </h2>
-            <div className="overflow-x-auto">
+            {/* Lista mobile */}
+            <FinanceiroCardList procedimentos={procedimentosFiltrados.slice(0, 50).map(p=>({
+              ...p,
+              paciente_nome: p.paciente_nome || '-',
+            }))} />
+
+            {/* Tabela desktop */}
+            <div className="relative overflow-x-auto scroll-x-indicator hidden md:block">
               <table className="min-w-full text-center rounded-3xl overflow-hidden">
                 <thead className="bg-white/90 backdrop-blur-xl shadow-sm">
                   <tr>
