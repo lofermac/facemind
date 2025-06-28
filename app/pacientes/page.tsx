@@ -326,20 +326,21 @@ export default function GerenciarPacientesPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pacientesParaLista.map((paciente) => (
-          <div key={paciente.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
+          <div key={paciente.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center space-x-2">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold shadow-sm border border-white/30 ${getStatusColor(paciente.status_calculado)} absolute -top-3 left-3`}>{paciente.status_calculado}</span>
+
                 <Link 
                   href={`/procedimentos?filtroNome=${encodeURIComponent(paciente.nome)}`}
-                  className="text-lg font-bold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors"
+                  className="text-lg font-bold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors block pr-10"
                 >
                   {paciente.nome}
                 </Link>
-                <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold shadow-sm border border-white/30 ${getStatusColor(paciente.status_calculado)}`}>{paciente.status_calculado}</span>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 absolute top-3 right-3">
                 <Link 
                   href={`/pacientes/editar/${paciente.id}`} 
                   className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-blue-600 hover:text-blue-800 hover:shadow-lg transition-all"

@@ -50,23 +50,27 @@ export default function CategoriaFilesPage() {
 
     const file = event.target.files[0];
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${Date.now()}_${sanitizedFileName}`;
+    const novoNome = `${Date.now()}_${sanitizedFileName}`;
 
     try {
-      console.log('Iniciando upload do arquivo:', fileName);
-      console.log('Tipo do arquivo:', file.type);
-      console.log('Tamanho do arquivo:', file.size);
+      console.log('Enviando arquivo para API upload:', novoNome);
+      const formData = new FormData();
+      const renamedFile = new File([file], novoNome, { type: file.type });
+      formData.append('file', renamedFile);
 
-      const { data, error } = await supabase.storage
-        .from('facemind-document-templates')
-        .upload(fileName, file);
+      const uploadRes = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      console.log('Resposta API /api/upload (formularios):', uploadData);
 
-      if (error) {
-        console.error('Erro no upload:', error.message);
-        throw error;
+      if (!uploadData.url) {
+        throw new Error(uploadData.error || 'Falha no upload.');
       }
 
-      console.log('Upload concluído:', data);
+      const publicURL = uploadData.url as string;
+      console.log('URL pública obtida:', publicURL);
 
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData) {
@@ -74,27 +78,15 @@ export default function CategoriaFilesPage() {
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('facemind-document-templates')
-        .getPublicUrl(fileName);
-
-      if (!urlData || !urlData.publicUrl) {
-        throw new Error('Não foi possível obter a URL pública do arquivo.');
-      }
-
-      const publicURL = urlData.publicUrl;
-      console.log('URL pública obtida:', publicURL);
-
       const { error: insertError } = await supabase
         .from('form_files')
-        .insert([{ category_id: categoryId, file_name: file.name, file_url: publicURL, user_id: userData.user.id }]);
+        .insert([{ category_id: categoryId, file_name: renamedFile.name, file_url: publicURL, user_id: userData.user.id }]);
 
       if (insertError) {
         console.error('Erro ao inserir no banco:', insertError.message);
         throw insertError;
       }
 
-      console.log('Arquivo inserido no banco com sucesso');
       toast.success('Arquivo enviado com sucesso!');
       fetchFiles();
     } catch (error: any) {
@@ -103,8 +95,14 @@ export default function CategoriaFilesPage() {
     }
   };
 
+  const normalizeUrl = (url: string) => {
+    return url
+      .replace('facemind-files.bunnycdn.com', 'facemind.b-cdn.net')
+      .replace('facemind-files.b-cdn.net', 'facemind.b-cdn.net');
+  };
+
   const handleViewFile = (fileUrl: string) => {
-    window.open(fileUrl, '_blank');
+    window.open(normalizeUrl(fileUrl), '_blank');
   };
 
   const handleEditFile = (fileId: string) => {

@@ -39,7 +39,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 left-0 z-40 w-full bg-white/60 backdrop-blur-xl shadow-lg border-b border-white/10">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-12 py-1 sm:py-2">
-        <div className="flex justify-between items-center h-14 sm:h-20">
+        <div className="flex items-center justify-center md:justify-between h-14 sm:h-20 relative">
           {/* Saudação (esconde em telas < md) */}
           <div className="hidden md:flex flex-1 justify-start">
             <div className="bg-white/80 px-3 py-1.5 rounded-xl shadow-sm">
@@ -50,12 +50,12 @@ export default function Header() {
           </div>
 
           {/* Logo */}
-          <div className="flex-shrink-0 flex items-center justify-center mx-2 sm:mx-6">
-            <Image src="/logo.png" alt="Logo FaceMind" width={100} height={36} priority className="h-8 sm:h-10 w-auto drop-shadow-xl" />
+          <div className="flex-shrink-0 flex items-center justify-center mx-0 sm:mx-6">
+            <Image src="/logo.png" alt="Logo FaceMind" width={120} height={40} priority className="h-8 sm:h-10 w-auto drop-shadow-xl" />
           </div>
 
           {/* Botão Sair */}
-          <div className="flex-1 flex justify-end">
+          <div className="flex flex-1 justify-end absolute md:static right-3 top-2">
             <button
               type="button"
               onClick={handleLogout}

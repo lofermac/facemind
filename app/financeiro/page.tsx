@@ -146,9 +146,9 @@ export default function FinanceiroPage() {
   return (
     <div className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-extrabold leading-9 text-slate-900 sm:text-4xl sm:truncate">Financeiro</h1>
-          <p className="mt-2 text-base text-slate-600">Visualize e gerencie todos os dados financeiros da clínica</p>
+        <div className="mb-6 text-center md:text-left">
+          <h1 className="text-2xl font-extrabold leading-8 text-slate-900 sm:text-4xl sm:leading-9">Financeiro</h1>
+          <p className="mt-1 text-sm sm:text-base text-slate-600">Visualize e gerencie todos os dados financeiros da clínica</p>
         </div>
         {/* Menu de abas sutil no topo */}
         <div className="flex flex-col gap-6 mb-8 w-full">
@@ -180,9 +180,9 @@ export default function FinanceiroPage() {
           </div>
         </div>
             {abaSelecionada === 'select' && (
-              <div className="flex flex-wrap gap-6 items-center justify-end w-full md:w-auto mt-4 md:mt-0">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-stretch sm:items-center justify-end w-full md:w-auto mt-4 md:mt-0">
             <select
-                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[120px]"
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-5 py-2 h-11 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-base text-slate-700 transition-all duration-200 font-medium w-full sm:w-auto min-w-[110px]"
               value={filtroAno}
               onChange={e => setFiltroAno(Number(e.target.value))}
             >
@@ -191,7 +191,7 @@ export default function FinanceiroPage() {
               ))}
             </select>
             <select
-                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[180px]"
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-5 py-2 h-11 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-base text-slate-700 transition-all duration-200 font-medium w-full sm:w-auto min-w-[160px]"
               value={filtroMes}
               onChange={e => setFiltroMes(Number(e.target.value))}
             >
@@ -201,7 +201,7 @@ export default function FinanceiroPage() {
               ))}
             </select>
             <select
-                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-6 py-2 h-12 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-lg text-slate-700 transition-all duration-200 font-medium min-w-[200px]"
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-5 py-2 h-11 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-base text-slate-700 transition-all duration-200 font-medium w-full sm:w-auto min-w-[180px]"
               value={filtroCategoria}
               onChange={e => setFiltroCategoria(e.target.value)}
             >
@@ -217,29 +217,29 @@ export default function FinanceiroPage() {
         {abaSelecionada === 'select' && (
           <>
             {/* Primeira linha: Faturamento, Custos, Lucro, Margem de Lucro */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4 mb-6">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <PiggyBank className="w-7 h-7 text-green-500" />
                 </div>
                 <div className="text-slate-600 text-base font-semibold">Faturamento</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalFaturado)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <Coins className="w-7 h-7 text-red-500" />
                 </div>
                 <div className="text-slate-600 text-base font-semibold">Custos</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustos)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <LineChart className="w-7 h-7 text-blue-500" />
                 </div>
                 <div className="text-slate-600 text-base font-semibold">Lucro</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(lucroPeriodo)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <Percent className="w-7 h-7 text-yellow-500" />
                 </div>
@@ -248,8 +248,8 @@ export default function FinanceiroPage() {
               </div>
             </div>
             {/* Segunda linha: Procedimentos, Custo com Produtos, Custo com Insumos, Custo com Sala */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4 mb-6">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <ListChecks className="w-7 h-7 text-purple-500" />
                 </div>
@@ -257,21 +257,21 @@ export default function FinanceiroPage() {
                 <div className="text-2xl font-bold text-slate-900 mt-1">{procedimentosFiltrados.length}</div>
                 <div className="text-slate-400 text-xs mt-1">Ticket Médio: {formatarValor(ticketMedio)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <Package className="w-7 h-7 text-red-500" />
                 </div>
                 <div className="text-slate-600 text-base font-semibold">Custo com Produtos</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustoProdutos)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <FlaskConical className="w-7 h-7 text-yellow-500" />
                 </div>
                 <div className="text-slate-600 text-base font-semibold">Custo com Insumos</div>
                 <div className="text-2xl font-bold text-slate-900 mt-1">{formatarValor(totalCustoInsumos)}</div>
               </div>
-              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col items-center justify-center text-center border border-white/30">
+              <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 md:p-8 flex flex-col items-center justify-center text-center border border-white/30">
                 <div className="w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md shadow mb-3">
                   <Building2 className="w-7 h-7 text-blue-500" />
                 </div>

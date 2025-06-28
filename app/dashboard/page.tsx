@@ -70,6 +70,7 @@ const initialDashboardData: DashboardData = {
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardData>(initialDashboardData);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState<string>('');
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
@@ -246,7 +247,15 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const name = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário';
+      setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+    })();
+  }, []);
+
+  const formatCurrency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   if (loading) return (
     <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
@@ -276,14 +285,15 @@ export default function DashboardPage() {
   const CORES = ['#34d399', '#64748b']; // Verde para ativos, cinza para inativos
 
   return (
-    <div className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="py-6 px-3 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
+      <div className="max-w-3xl md:max-w-7xl mx-auto space-y-6 md:space-y-8">
+        {/* Espaço removido: Boas-vindas */}
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 md:grid-cols-2 lg:grid-cols-4">
           {metricasLinha1.map((item) => (
             <CardMetric key={item.title} title={item.title} value={item.value.toString()} IconComponent={item.IconComponent} iconColor={item.iconColor} />
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-5 md:grid-cols-2 lg:grid-cols-4">
           {metricasLinha2.map((item) => (
             <CardMetric key={item.title} title={item.title} value={item.value.toString()} IconComponent={item.IconComponent} iconColor={item.iconColor} />
           ))}
@@ -293,7 +303,7 @@ export default function DashboardPage() {
             {/* Gráfico de Procedimentos Ativos/Inativos */}
             <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 border border-white/30 flex flex-col items-center justify-center">
               <h3 className="text-lg font-bold text-slate-900 mb-4">Procedimentos Ativos x Inativos</h3>
-              <div className="w-full h-64">
+              <div className="w-full h-48 md:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -312,11 +322,11 @@ export default function DashboardPage() {
                       ))}
                     </Pie>
                     <Tooltip formatter={(value: number, name: string) => [`${value} procedimentos`, name]} />
-                    <Legend verticalAlign="bottom" iconType="circle" />
+                    <Legend verticalAlign="bottom" iconType="circle" className="hidden md:block" />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-          </div>
+            </div>
           </div>
         </div>
       </div>

@@ -305,7 +305,7 @@ function ProcedimentosInner() {
       </div>
 
       {/* Lista mobile */}
-      <ProcedimentosCardList procedimentos={procedimentosFiltrados} />
+      <ProcedimentosCardList procedimentos={procedimentosFiltrados} onDelete={(p:any)=>openModal(p)} />
       {/* Grid desktop */}
       <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {procedimentosFiltrados.map((proc) => {

@@ -193,50 +193,34 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     setIsImageModalOpen(true);
   };
   
-  // ✨ FUNÇÃO UPLOAD ARQUIVOS COM CONSTRUÇÃO DE URL BLINDADA ✨
+  // ✨ FUNÇÃO UPLOAD ARQUIVOS COM ENVIO PARA BUNNY.NET VIA API LOCAL ✨
   const uploadArquivos = async (files: FileList | null, tipo: 'antes' | 'depois'): Promise<string[]> => { 
     if (!files || files.length === 0) return [];
     const urls: string[] = [];
-    const timestampValue = Date.now().toString(); 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      let extensao = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-      extensao = extensao.replace(/[^a-z0-9.]/g, '');
-      let caminhoNoStorage = "public/"; // Garante que não tem lixo aqui
-      caminhoNoStorage += timestampValue;
-      caminhoNoStorage += "_";
-      caminhoNoStorage += i.toString();
-      caminhoNoStorage += "_";
-      caminhoNoStorage += tipo.toString(); // 'antes' ou 'depois'
-      caminhoNoStorage += "_foto"; 
-      caminhoNoStorage += extensao;
-      
-      const { data, error: uploadError } = await supabase.storage
-        .from(NOME_DO_BUCKET).upload(caminhoNoStorage, file, { cacheControl: '3600', upsert: false });
-
-      if (uploadError) {
-        toast.error(`Falha no upload de ${file.name}: ${uploadError.message}`);
-        continue; 
-      }
-      if (data) {
-        const { data: urlData } = supabase.storage.from(NOME_DO_BUCKET).getPublicUrl(data.path); 
-        if (urlData && urlData.publicUrl) {
-          // CONSTRUÇÃO BLINDADA DA URL DA MINIATURA
-          let urlBase = urlData.publicUrl;
-          if (urlBase.includes("?")) { // Remove query params existentes, se houver (improvável aqui)
-            urlBase = urlBase.substring(0, urlBase.indexOf("?"));
-          }
-          const params = new URLSearchParams({
-            width: THUMB_W.toString(),
-            height: THUMB_H.toString(),
-            resize: THUMB_RESIZE.toString()
-          });
-          const urlMiniatura = urlBase + "?" + params.toString();
-          urls.push(urlMiniatura);
-          console.log("URL Miniatura SALVA:", urlMiniatura); // DEBUG
+      const formData = new FormData();
+      // Renomear arquivo para garantir unicidade
+      const extensao = file.name.slice(file.name.lastIndexOf('.')).toLowerCase().replace(/[^a-z0-9.]/g, '');
+      const nomeArquivo = `${Date.now()}_${i}_${tipo}_foto${extensao}`;
+      const renamedFile = new File([file], nomeArquivo, { type: file.type });
+      formData.append('file', renamedFile);
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        console.log('Resposta API /api/upload:', data);
+        if (data.thumbUrl) {
+          urls.push(data.thumbUrl);
+        } else if (data.url) {
+          urls.push(data.url);
         } else {
-          toast.message(`Upload de ${file.name} OK, mas URL pública não obtida.`);
+          toast.error(`Falha no upload de ${file.name}: ${data.error || 'Erro desconhecido.'}`);
         }
+      } catch (err: any) {
+        toast.error(`Falha no upload de ${file.name}: ${err.message}`);
       }
     }
     return urls;
@@ -557,11 +541,14 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Antes):</p>
                         <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                           {urlsFotosAntesExistentes.map((url, index) => {
-                            const originalUrl = url.split('?')[0];
+                            const corrigido = url
+                              .replace('facemind-files.bunnycdn.com', 'facemind.b-cdn.net')
+                              .replace('facemind-files.b-cdn.net', 'facemind.b-cdn.net');
+                            const originalUrl = corrigido.split('?')[0];
                             return (
                               <div key={`antes-existente-${index}`} className="relative group">
                                 <img
-                                  src={url}
+                                  src={corrigido}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     if (target.src !== originalUrl) target.src = originalUrl;
@@ -573,7 +560,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                                   }}
                                   alt={`Foto Antes ${index + 1}`}
                                   className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
-                                  onClick={() => handleAbrirImagemModal(url)}
+                                  onClick={() => handleAbrirImagemModal(corrigido)}
                                 />
                                 <button
                                   type="button"
@@ -630,11 +617,14 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Depois):</p>
                         <div className="flex flex-wrap gap-2 p-2 border rounded-md">
                           {urlsFotosDepoisExistentes.map((url, index) => {
-                            const originalUrl = url.split('?')[0];
+                            const corrigido = url
+                              .replace('facemind-files.bunnycdn.com', 'facemind.b-cdn.net')
+                              .replace('facemind-files.b-cdn.net', 'facemind.b-cdn.net');
+                            const originalUrl = corrigido.split('?')[0];
                             return (
                               <div key={`depois-existente-${index}`} className="relative group">
                                 <img
-                                  src={url}
+                                  src={corrigido}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     if (target.src !== originalUrl) target.src = originalUrl;
@@ -646,7 +636,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                                   }}
                                   alt={`Foto Depois ${index + 1}`}
                                   className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
-                                  onClick={() => handleAbrirImagemModal(url)}
+                                  onClick={() => handleAbrirImagemModal(corrigido)}
                                 />
                                 <button
                                   type="button"
