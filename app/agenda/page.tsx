@@ -309,6 +309,18 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
   );
 }
 
+// Definição do tipo para agendamento
+interface Agendamento {
+  id: string;
+  paciente_id: string;
+  data: string;
+  hora: string;
+  duracao_min: number;
+  observacao: string;
+  rotulo: string;
+  enviar_whatsapp: boolean | string;
+}
+
 function AgendaPageContent() {
   const searchParams = useSearchParams();
   const initialDateParam = searchParams?.get('date');
@@ -322,12 +334,12 @@ function AgendaPageContent() {
   const [view, setView] = useState<'month' | 'week'>('week');
   const [current, setCurrent] = useState(initialDate);
   const [modal, setModal] = useState<{ open: boolean, data: string, hora: string }>({ open: false, data: '', hora: '' });
-  const [agendamentos, setAgendamentos] = useState([]);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [pacientesMap, setPacientesMap] = useState<{ [id: string]: string }>({});
-  const [agendamentoEditavel, setAgendamentoEditavel] = useState(null);
+  const [agendamentoEditavel, setAgendamentoEditavel] = useState<Agendamento | null>(null);
 
   // Função para abrir modal ao clicar em horário
-  function handleAgendamentoClick(agendamento) {
+  function handleAgendamentoClick(agendamento: Agendamento) {
     setModal({ open: true, data: agendamento.data, hora: agendamento.hora });
     setAgendamentoEditavel(agendamento);
   }
@@ -364,7 +376,7 @@ function AgendaPageContent() {
       .select('id, paciente_id, data, hora, duracao_min, observacao, rotulo, enviar_whatsapp')
       .gte('data', dataInicio.toISOString().slice(0, 10))
       .lte('data', dataFim.toISOString().slice(0, 10));
-    if (!error && Array.isArray(data)) setAgendamentos(data);
+    if (!error && Array.isArray(data)) setAgendamentos(data as Agendamento[]);
     console.log('Agendamentos:', data); // debug
     // Buscar nomes dos pacientes
     const { data: pacientes } = await supabase
@@ -433,7 +445,9 @@ function AgendaPageContent() {
               {getMonthMatrix(current.getFullYear(), current.getMonth()).map((week, i) =>
                 week.map((day, j) => {
                   const isClickable = day !== '';
-                  const dayDate = new Date(current.getFullYear(), current.getMonth(), day || 1);
+                  // Garante que day é number para evitar erro de tipo
+                  const dayNumber = typeof day === 'number' ? day : 1;
+                  const dayDate = new Date(current.getFullYear(), current.getMonth(), dayNumber);
                   const ags = agendamentos.filter(a => {
                     const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
                     const dataDia = dayDate.toISOString().slice(0, 10);
@@ -442,7 +456,7 @@ function AgendaPageContent() {
                   return (
                     <div
                       key={i + '-' + j}
-                      className={`h-16 relative border rounded-lg ${day === '' ? 'bg-slate-50' : 'bg-white'} ${day === current.getDate() && current.getMonth() === new Date().getMonth() && current.getFullYear() === new Date().getFullYear() && day !== '' ? 'border-blue-500' : 'border-slate-200'} ${isClickable ? 'cursor-pointer hover:bg-blue-50 transition' : ''}`}
+                      className={`h-16 relative border rounded-lg ${day === '' ? 'bg-slate-50' : 'bg-white'} ${(typeof day === 'number' && day === current.getDate() && current.getMonth() === new Date().getMonth() && current.getFullYear() === new Date().getFullYear()) ? 'border-blue-500' : 'border-slate-200'} ${isClickable ? 'cursor-pointer hover:bg-blue-50 transition' : ''}`}
                       onClick={() => {
                         if (isClickable) {
                           setCurrent(dayDate);
