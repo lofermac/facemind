@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
@@ -93,7 +93,7 @@ const calcularIdade = (dataNascimento: string | null | undefined): string => {
 };
 // --- Fim das Funções Utilitárias ---
 
-export default function GerenciarPacientesPage() {
+function GerenciarPacientesPageContent() {
   const [pacientesParaLista, setPacientesParaLista] = useState<PacienteComStatusCalculado[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroNome, setFiltroNome] = useState('');
@@ -408,5 +408,13 @@ export default function GerenciarPacientesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GerenciarPacientesPage() {
+  return (
+    <Suspense fallback={<div>Carregando pacientes...</div>}>
+      <GerenciarPacientesPageContent />
+    </Suspense>
   );
 }
