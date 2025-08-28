@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRef } from 'react';
 import { supabase } from '@/utils/supabaseClient';
+import { Suspense } from 'react';
 
 // Semana começando na segunda-feira
 const weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
@@ -308,7 +309,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
   );
 }
 
-export default function AgendaPage() {
+function AgendaPageContent() {
   const searchParams = useSearchParams();
   const initialDateParam = searchParams?.get('date');
   
@@ -553,5 +554,13 @@ export default function AgendaPage() {
       </div>
       {/* Bloco de "Compromissos do dia" removido conforme solicitação */}
     </div>
+  );
+}
+
+export default function AgendaPage() {
+  return (
+    <Suspense fallback={<div>Carregando agenda...</div>}>
+      <AgendaPageContent />
+    </Suspense>
   );
 }
