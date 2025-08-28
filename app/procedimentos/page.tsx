@@ -10,7 +10,12 @@ import { Dialog, Transition } from '@headlessui/react';
 import '../styles/procedimentos.css';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
+import SkeletonLoader from '@/components/SkeletonLoader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import dynamic from 'next/dynamic';
+import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
+import StatusBadge from '@/components/StatusBadge';
+import { calcProcedureStatus, normalizeText } from '@/utils/statusRules';
 
 interface ProcedimentoRealizado {
   id: string;
@@ -39,60 +44,22 @@ function calcularStatusProcedimento(
   dataProcedimento: string | null, 
   duracaoMeses: number | null
 ): { status: string; diasRestantes: number | null; cor: string; texto: string } {
-  if (!dataProcedimento || !duracaoMeses || duracaoMeses <= 0) {
-    return { status: 'sem_duracao', diasRestantes: null, cor: 'bg-gray-500', texto: 'Sem duração definida' };
-  }
-
-  const hojeUtc = new Date();
-  hojeUtc.setUTCHours(0, 0, 0, 0);
-
-  const dataRealizacao = new Date(dataProcedimento);
-  dataRealizacao.setUTCHours(0, 0, 0, 0);
-
-  const dataVencimento = new Date(dataRealizacao.getTime());
-  dataVencimento.setUTCMonth(dataVencimento.getUTCMonth() + duracaoMeses);
-
-  const diffDiasParaVencer = Math.floor((dataVencimento.getTime() - hojeUtc.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDiasParaVencer < 0) {
-    return { 
-      status: 'vencido', 
-      diasRestantes: Math.abs(diffDiasParaVencer), 
-      cor: 'bg-red-500', 
-      texto: `Vencido há ${Math.abs(diffDiasParaVencer)} dias` 
-    };
-  } else if (diffDiasParaVencer <= 30) {
-    return { 
-      status: 'proximo_vencimento', 
-      diasRestantes: diffDiasParaVencer, 
-      cor: 'bg-yellow-500', 
-      texto: `Vence em ${diffDiasParaVencer} dias` 
-    };
-  } else {
-    return { 
-      status: 'ativo', 
-      diasRestantes: diffDiasParaVencer, 
-      cor: 'bg-green-500', 
-      texto: `Ativo (${diffDiasParaVencer} dias restantes)` 
-    };
-  }
+  const { status, dias } = calcProcedureStatus(dataProcedimento, duracaoMeses);
+  if (status === 'vencido') return { status, diasRestantes: dias, cor: 'bg-red-500', texto: `Vencido há ${dias} dias` };
+  if (status === 'proximo_vencimento') return { status, diasRestantes: dias, cor: 'bg-yellow-500', texto: `Vence em ${dias} dias` };
+  if (status === 'ativo') return { status, diasRestantes: dias, cor: 'bg-green-500', texto: `Ativo (${dias} dias restantes)` };
+  return { status: 'sem_duracao', diasRestantes: null, cor: 'bg-gray-500', texto: 'Sem duração definida' };
 }
 
-function SeloStatus({ cor, texto }: { cor: string; texto: string }) {
+// Função auxiliar para status Renovado
+function statusRenovado() {
+  return { status: 'renovado', diasRestantes: null, cor: 'bg-blue-500', texto: 'Renovado' };
+}
+
+function SeloStatus({ status, diasRestantes }: { status: string; diasRestantes?: number | null }) {
   return (
-    <div
-      className={`absolute -top-4 right-4 z-20 px-5 py-1.5 rounded-full font-semibold text-sm shadow-lg border border-white/30 ${cor} flex items-center gap-2 backdrop-blur-xl bg-white/30 bg-clip-padding`} 
-      style={{
-        boxShadow: '0 2px 12px 0 rgba(30, 41, 59, 0.10)',
-        letterSpacing: 0.2,
-        minWidth: 0,
-        maxWidth: '90%',
-        transition: 'all 0.2s',
-      }}
-    >
-      <span className="drop-shadow-sm text-slate-900" style={{color: cor.includes('green') ? '#059669' : cor.includes('yellow') ? '#b45309' : cor.includes('red') ? '#dc2626' : '#334155'}}>
-        {texto}
-      </span>
+    <div className="absolute -top-4 right-4 z-20">
+      <StatusBadge status={status as any} dias={diasRestantes ?? undefined} />
     </div>
   );
 }
@@ -106,6 +73,12 @@ function ProcedimentosInner() {
   const [searchTerm, setSearchTerm] = useState(() => {
     if (searchParams && typeof searchParams.get === 'function') {
       return searchParams.get('filtroNome') || '';
+    }
+    return '';
+  });
+  const [filtroStatusURL, setFiltroStatusURL] = useState<string>(() => {
+    if (searchParams && typeof searchParams.get === 'function') {
+      return searchParams.get('filtroStatus') || '';
     }
     return '';
   });
@@ -146,7 +119,7 @@ function ProcedimentosInner() {
     setLoading(true);
     const { data: procedimentosData, error: procedimentosError } = await supabase
       .from('procedimentos_realizados')
-      .select('*')
+      .select('id, created_at, paciente_id, data_procedimento, categoria_nome, valor_cobrado, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses )')
       .order('data_procedimento', { ascending: false });
 
     if (procedimentosError) {
@@ -170,26 +143,69 @@ function ProcedimentosInner() {
         .eq('id', proc.paciente_id)
         .single();
 
+      // Normaliza o retorno do join: pode vir como objeto ou como array dependendo do tipo gerado
+      const tvRaw: any = (proc as any).procedimento_tabela_valores_id ?? null;
+      let procedimento_nome = '';
+      let duracao_efeito_meses: number | null = null;
+      if (tvRaw) {
+        if (Array.isArray(tvRaw)) {
+          const first = tvRaw[0] ?? null;
+          if (first) {
+            procedimento_nome = first.nome_procedimento ?? '';
+            duracao_efeito_meses = (first.duracao_efeito_meses ?? null) as number | null;
+          }
+        } else {
+          procedimento_nome = tvRaw.nome_procedimento ?? '';
+          duracao_efeito_meses = (tvRaw.duracao_efeito_meses ?? null) as number | null;
+        }
+      }
+
       if (pacienteError) {
-        console.error(`Erro ao buscar paciente ${proc.paciente_id} para o procedimento ${proc.id}:`, pacienteError);
         procedimentosComNomes.push({
           ...proc,
+          procedimento_nome,
+          duracao_efeito_meses,
           paciente_nome: 'Paciente não encontrado',
         } as ProcedimentoRealizado);
       } else if (pacienteData) {
         procedimentosComNomes.push({
           ...proc,
+          procedimento_nome,
+          duracao_efeito_meses,
           paciente_nome: pacienteData.nome,
         } as ProcedimentoRealizado);
       } else {
-         procedimentosComNomes.push({
+        procedimentosComNomes.push({
           ...proc,
+          procedimento_nome,
+          duracao_efeito_meses,
           paciente_nome: 'Informação indisponível',
         } as ProcedimentoRealizado);
       }
     }
 
-    setProcedimentos(procedimentosComNomes);
+    // --- Marcar procedimentos "Renovado" ---
+    const mapaPorPacienteEProc: Record<string, ProcedimentoRealizado[]> = {};
+    procedimentosComNomes.forEach(p => {
+      const chave = `${p.paciente_id}-${(p.procedimento_nome || '').toLowerCase()}`;
+      (mapaPorPacienteEProc[chave] = mapaPorPacienteEProc[chave] || []).push(p);
+    });
+
+    // Para cada grupo, ordenar por data ASC e marcar todos exceto o mais recente como renovado
+    Object.values(mapaPorPacienteEProc).forEach(lista => {
+      lista.sort((a, b) => {
+        if (!a.data_procedimento || !b.data_procedimento) return 0;
+        return new Date(a.data_procedimento).getTime() - new Date(b.data_procedimento).getTime();
+      });
+      if (lista.length > 1) {
+        for (let i = 0; i < lista.length - 1; i++) {
+          lista[i].status_calculado = 'renovado';
+        }
+      }
+    });
+
+    // Atualiza state com nova lista status
+    setProcedimentos([...procedimentosComNomes]);
     setLoading(false);
   }
 
@@ -213,13 +229,34 @@ function ProcedimentosInner() {
     fetchCategorias();
   }, []);
 
+  // Atualiza filtro por status ao mudar a URL
+  useEffect(() => {
+    const v = searchParams?.get('filtroStatus') || '';
+    setFiltroStatusURL(v);
+    
+    // Também atualiza filtro por categoria via URL
+    const categoriaParam = searchParams?.get('categoria') || '';
+    setCategoriaFiltro(categoriaParam);
+  }, [searchParams]);
+
   const procedimentosFiltrados = procedimentos.filter(p => {
     const matchNome = searchTerm === '' || 
       (p.paciente_nome && p.paciente_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (p.procedimento_nome && p.procedimento_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (p.categoria_nome && p.categoria_nome.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchCategoria = categoriaFiltro === '' || p.categoria_nome === categoriaFiltro;
-    return matchNome && matchCategoria;
+    let matchStatus = true;
+    if (filtroStatusURL) {
+      let statusCalc = p.status_calculado || '';
+      if (!statusCalc || statusCalc !== 'renovado') {
+        const chaveLookup = String(p.procedimento_nome || '').toLowerCase();
+        const duracaoMeses = mapaDuracaoProcedimentos.get(chaveLookup) || null;
+        const info = calcularStatusProcedimento(p.data_procedimento, duracaoMeses);
+        statusCalc = info.status;
+      }
+      matchStatus = statusCalc === filtroStatusURL;
+    }
+    return matchNome && matchCategoria && matchStatus;
   });
 
   const openModal = (proc: ProcedimentoRealizado) => {
@@ -250,22 +287,44 @@ function ProcedimentosInner() {
     }
   };
 
-  if (loading && procedimentos.length === 0) {
+  if (loading && procedimentos.length === 0)
     return (
-      <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <AppleLikeLoader text="Carregando dados dos procedimentos..." />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header skeleton */}
+        <div className="mb-6 md:flex md:items-center md:justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="animate-pulse bg-slate-200 rounded-lg h-8 w-48 mb-2"></div>
+            <div className="animate-pulse bg-slate-200 rounded-lg h-4 w-64"></div>
+          </div>
+          <div className="mt-4 flex md:mt-0 md:ml-4">
+            <div className="animate-pulse bg-slate-200 rounded-xl h-12 w-40"></div>
+          </div>
+        </div>
+
+        {/* Filtros skeleton */}
+        <div className="mb-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="animate-pulse bg-slate-200 rounded-lg h-12 flex-1"></div>
+          <div className="animate-pulse bg-slate-200 rounded-lg h-12 w-48"></div>
+          <div className="animate-pulse bg-slate-200 rounded-xl h-12 w-32"></div>
+        </div>
+
+        {/* Grid de cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <SkeletonLoader key={i} type="card" />
+          ))}
+        </div>
       </div>
     );
-  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-3xl font-extrabold leading-9 text-slate-900 sm:text-4xl sm:truncate">
+          <h1 className="text-2xl font-bold text-slate-900">
             Gerenciar Procedimentos
-          </h2>
-          <p className="mt-2 text-base text-slate-600">
+          </h1>
+          <p className="text-slate-600 text-sm mt-1">
             Visualize e gerencie todos os procedimentos realizados
           </p>
         </div>
@@ -305,23 +364,25 @@ function ProcedimentosInner() {
       </div>
 
       {/* Lista mobile */}
-      <ProcedimentosCardList procedimentos={procedimentosFiltrados} onDelete={(p:any)=>openModal(p)} />
+      <ErrorBoundary name="Lista de Procedimentos">
+        <ProcedimentosCardList procedimentos={procedimentosFiltrados} onDelete={(p:any)=>openModal(p)} />
+      </ErrorBoundary>
       {/* Grid desktop */}
       <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {procedimentosFiltrados.map((proc) => {
           const chaveLookup = String(proc.procedimento_nome).toLowerCase();
           const duracaoMeses = mapaDuracaoProcedimentos.get(chaveLookup);
-          const statusInfo = calcularStatusProcedimento(proc.data_procedimento, duracaoMeses || null);
+          const statusInfo = proc.status_calculado === 'renovado' ? statusRenovado() : calcularStatusProcedimento(proc.data_procedimento, duracaoMeses || null);
 
           return (
             <div key={proc.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
-              <SeloStatus cor={statusInfo.cor} texto={statusInfo.texto} />
+              <SeloStatus status={statusInfo.status} diasRestantes={statusInfo.diasRestantes} />
               
               <div className="flex justify-between items-start mb-0">
                 <div className="flex-1">
                   <h3 
                     className="text-lg font-bold text-slate-900 leading-tight mb-1 hover:text-blue-600 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/procedimentos/editar/${proc.id}`)}
+                    onClick={() => router.push(`/procedimentos/${proc.id}`)}
                   >
                     {proc.procedimento_nome}
                   </h3>
@@ -336,6 +397,7 @@ function ProcedimentosInner() {
                       router.push(`/procedimentos/editar/${proc.id}`);
                     }} 
                     className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow text-blue-600 hover:text-blue-800 hover:shadow-lg transition-all"
+                    title="Editar procedimento"
                   >
                     <PencilIcon className="h-5 w-5" />
                   </button>

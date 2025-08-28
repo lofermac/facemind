@@ -6,7 +6,6 @@ console.log('editar/[id]/page.tsx carregado - VERSÃO IMPORT CORRIGIDO');
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/utils/supabaseClient';
-// 👇 NOME DA INTERFACE CORRIGIDO AQUI 👇
 import ProcedimentoForm, { ProcedimentoRealizadoExistente } from '@/components/ProcedimentoForm'; 
 import { toast } from 'sonner';
 
@@ -15,7 +14,6 @@ export default function EditarProcedimentoPage() {
   const params = useParams();
   const procedimentoId = params && typeof params.id === 'string' ? params.id : '';
 
-  // Usar a interface correta importada
   const [procedimentoParaEditar, setProcedimentoParaEditar] = useState<ProcedimentoRealizadoExistente | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -36,9 +34,6 @@ export default function EditarProcedimentoPage() {
           toast.error('Falha ao carregar dados do procedimento.');
           setNotFound(true);
         } else if (data) {
-          // Ajuste para corresponder à interface ProcedimentoRealizadoExistente
-          // A interface ProcedimentoFormData (base) já está correta para os campos.
-          // O casting para ProcedimentoRealizadoExistente deve funcionar se 'data' tiver id e created_at.
           setProcedimentoParaEditar(data as ProcedimentoRealizadoExistente);
         } else {
           setNotFound(true);
@@ -48,23 +43,16 @@ export default function EditarProcedimentoPage() {
       };
       fetchProcedimento();
     } else {
-      toast.error("ID do procedimento não fornecido.");
+      toast.error('ID do procedimento não fornecido.');
       setLoading(false);
       setNotFound(true);
     }
   }, [procedimentoId]);
 
-  const handleSave = (idDoProcedimentoSalvo?: string) => {
-    router.push('/procedimentos');
-  };
+  const handleSave = () => router.push('/procedimentos');
+  const handleCancel = () => router.back();
 
-  const handleCancel = () => {
-    router.back();
-  };
-
-  if (loading) {
-    return <div className="p-6 text-center">Carregando dados do procedimento...</div>;
-  }
+  if (loading) return <div className="p-6 text-center">Carregando dados do procedimento...</div>;
 
   if (notFound) {
     return (
@@ -78,17 +66,40 @@ export default function EditarProcedimentoPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="bg-white shadow sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 mb-6">
-            Editar Procedimento
-          </h2>
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors font-bold"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Editar Procedimento</h1>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-sm font-medium">Modo Edição</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Formulário */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
           {procedimentoParaEditar && (
-            <ProcedimentoForm 
+            <ProcedimentoForm
               procedimentoInicial={procedimentoParaEditar}
-              onSave={handleSave} 
-              onCancel={handleCancel} 
+              onSave={handleSave}
+              onCancel={handleCancel}
             />
           )}
         </div>

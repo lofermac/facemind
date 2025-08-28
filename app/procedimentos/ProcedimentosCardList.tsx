@@ -20,6 +20,7 @@ const statusColors: Record<string, string> = {
   vencido: 'bg-red-100 text-red-700',
   proximo_vencimento: 'bg-yellow-100 text-yellow-700',
   sem_duracao: 'bg-gray-100 text-gray-700',
+  renovado: 'bg-blue-100 text-blue-700',
 };
 
 interface Props {

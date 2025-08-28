@@ -138,77 +138,166 @@ export default function ProcedimentoValorFormModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full z-50 flex justify-center items-center px-4">
-      <div className="relative mx-auto p-6 border w-full max-w-lg shadow-lg rounded-md bg-white">
-        <div className="flex justify-between items-center mb-5">
-          <h3 className="text-xl font-semibold text-gray-900">
-            {isEditMode ? 'Editar Item da Tabela' : 'Novo Item na Tabela'}
-          </h3>
-          <button onClick={onClose} className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" disabled={isSubmitting} aria-label="Fechar modal">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path></svg>
+    <div className="fixed inset-0 bg-slate-100 bg-opacity-80 overflow-y-auto h-full w-full z-50 flex justify-center items-center px-4">
+      <div className="relative mx-auto w-full max-w-2xl bg-white rounded-2xl shadow-lg border border-slate-200">
+        {/* Header do Modal */}
+        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <div>
+            <h3 className="text-2xl font-bold text-slate-900">
+              {isEditMode ? 'Editar Item da Tabela' : 'Novo Item na Tabela'}
+            </h3>
+            <p className="text-slate-600 text-sm mt-1">
+              {isEditMode ? 'Atualize as informações do procedimento' : 'Adicione um novo procedimento à tabela de valores'}
+            </p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-slate-600 transition-colors" 
+            disabled={isSubmitting} 
+            aria-label="Fechar modal"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="nome-procedimento-tv" className="block text-sm font-medium text-gray-700">
-              Nome do Procedimento <span className="text-red-500">*</span>
-            </label>
-            <input type="text" name="nome-procedimento-tv" id="nome-procedimento-tv" value={nomeProcedimento} onChange={(e) => setNomeProcedimento(e.target.value)} required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" autoComplete="off" inputMode="text" placeholder="Ex: Aplicação de Toxina - Testa Completa" />
-          </div>
+        {/* Conteúdo do Modal */}
+        <div className="p-6">
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="valor-pix-tv" className="block text-sm font-medium text-gray-700">Valor Pix</label>
-              <input type="number" name="valor-pix-tv" id="valor-pix-tv" value={valorPix} onChange={(e) => setValorPix(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 150.00" />
+              <label htmlFor="nome-procedimento-tv" className="block text-sm font-medium text-slate-700 mb-2">
+                Nome do Procedimento <span className="text-red-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                name="nome-procedimento-tv" 
+                id="nome-procedimento-tv" 
+                value={nomeProcedimento} 
+                onChange={(e) => setNomeProcedimento(e.target.value)} 
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                autoComplete="off" 
+                inputMode="text" 
+                placeholder="Ex: Aplicação de Toxina - Testa Completa" 
+              />
             </div>
-            <div>
-              <label htmlFor="valor-4x-tv" className="block text-sm font-medium text-gray-700">Valor 4x</label>
-              <input type="number" name="valor-4x-tv" id="valor-4x-tv" value={valor4x} onChange={(e) => setValor4x(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 160.00" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="valor-pix-tv" className="block text-sm font-medium text-slate-700 mb-2">Valor Pix</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">R$</span>
+                  <input 
+                    type="number" 
+                    name="valor-pix-tv" 
+                    id="valor-pix-tv" 
+                    value={valorPix} 
+                    onChange={(e) => setValorPix(e.target.value)} 
+                    step="0.01" 
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    inputMode="decimal" 
+                    autoComplete="off" 
+                    placeholder="150.00" 
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="valor-4x-tv" className="block text-sm font-medium text-slate-700 mb-2">Valor 4x</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">R$</span>
+                  <input 
+                    type="number" 
+                    name="valor-4x-tv" 
+                    id="valor-4x-tv" 
+                    value={valor4x} 
+                    onChange={(e) => setValor4x(e.target.value)} 
+                    step="0.01" 
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    inputMode="decimal" 
+                    autoComplete="off" 
+                    placeholder="160.00" 
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="valor-6x-tv" className="block text-sm font-medium text-slate-700 mb-2">Valor 6x</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">R$</span>
+                  <input 
+                    type="number" 
+                    name="valor-6x-tv" 
+                    id="valor-6x-tv" 
+                    value={valor6x} 
+                    onChange={(e) => setValor6x(e.target.value)} 
+                    step="0.01" 
+                    min="0"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    inputMode="decimal" 
+                    autoComplete="off" 
+                    placeholder="165.00" 
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label htmlFor="valor-6x-tv" className="block text-sm font-medium text-gray-700">Valor 6x</label>
-              <input type="number" name="valor-6x-tv" id="valor-6x-tv" value={valor6x} onChange={(e) => setValor6x(e.target.value)} step="0.01" min="0"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="decimal" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }} placeholder="Ex: 165.00" />
-            </div>
-          </div>
           
-          <div>
-            <label htmlFor="duracao-efeito-meses-tv" className="block text-sm font-medium text-gray-700">
-              Duração do Efeito (meses)
-            </label>
-            <input
-              type="number"
-              name="duracao-efeito-meses-tv"
-              id="duracao-efeito-meses-tv"
-              value={duracaoEfeitoMeses}
-              onChange={(e) => setDuracaoEfeitoMeses(e.target.value)}
-              min="0"
-              step="1" // Meses inteiros
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm" inputMode="numeric" autoComplete="off" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
-              placeholder="Ex: 6"
-            />
-             <p className="mt-1 text-xs text-gray-500">Deixe em branco ou 0 se não aplicável.</p>
-          </div>
+            <div>
+              <label htmlFor="duracao-efeito-meses-tv" className="block text-sm font-medium text-slate-700 mb-2">
+                Duração do Efeito (meses)
+              </label>
+              <input
+                type="number"
+                name="duracao-efeito-meses-tv"
+                id="duracao-efeito-meses-tv"
+                value={duracaoEfeitoMeses}
+                onChange={(e) => setDuracaoEfeitoMeses(e.target.value)}
+                min="0"
+                step="1"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                inputMode="numeric" 
+                autoComplete="off" 
+                placeholder="Ex: 6"
+              />
+               <p className="mt-2 text-xs text-slate-500">Deixe em branco ou 0 se não aplicável.</p>
+            </div>
 
-          <div>
-            <label htmlFor="observacoes-procedimento-tv" className="block text-sm font-medium text-gray-700">
-              Observações (Opcional)
-            </label>
-            <textarea name="observacoes-procedimento-tv" id="observacoes-procedimento-tv" rows={3} value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px]" placeholder="Detalhes sobre este item..."></textarea>
-          </div>
+            <div>
+              <label htmlFor="observacoes-procedimento-tv" className="block text-sm font-medium text-slate-700 mb-2">
+                Observações (Opcional)
+              </label>
+              <textarea 
+                name="observacoes-procedimento-tv" 
+                id="observacoes-procedimento-tv" 
+                rows={3} 
+                value={observacoes} 
+                onChange={(e) => setObservacoes(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" 
+                placeholder="Detalhes sobre este item..."
+              />
+            </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 mt-5">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Cancelar</button>
-            <button type="submit" disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 border border-transparent rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50">
-              {isSubmitting ? "Salvando..." : (isEditMode ? "Salvar Alterações" : "Adicionar Item")}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end space-x-3 pt-4">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                disabled={isSubmitting} 
+                className="px-6 py-2 border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? "Salvando..." : (isEditMode ? "Salvar Alterações" : "Adicionar Item")}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

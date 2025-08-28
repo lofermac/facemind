@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 import { PlusCircleIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import PacienteForm from '@/components/PacienteForm';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
+import SkeletonLoader from '@/components/SkeletonLoader';
+import { useSearchParams } from 'next/navigation';
+import { derivePatientStatusFromProcedures } from '@/utils/statusRules';
 
 // Tipos
 interface ProcedimentoRealizadoParaStatus {
@@ -99,6 +102,7 @@ export default function GerenciarPacientesPage() {
   const [pacienteParaDeletar, setPacienteParaDeletar] = useState<PacienteComStatusCalculado | null>(null);
   const [mapaDuracaoProcedimentos, setMapaDuracaoProcedimentos] = useState<Map<string, number | null>>(new Map());
   const [showNovoPacienteModal, setShowNovoPacienteModal] = useState(false);
+  const searchParams = useSearchParams();
 
   const getStatusColor = (statusCalculado: string | null) => {
     if (statusCalculado === 'Inativo') return 'bg-gray-400 text-white';
@@ -122,20 +126,11 @@ export default function GerenciarPacientesPage() {
         throw errorTipos;
       }
 
-      const novoMapaDuracao = new Map<string, number | null>();
-      if (tiposProcedimentoData) {
-        tiposProcedimentoData.forEach(tipo => {
-          if (tipo.nome_procedimento) {
-            novoMapaDuracao.set(String(tipo.nome_procedimento).toLowerCase(), tipo.duracao_efeito_meses as number | null);
-          }
-        });
-      }
-      setMapaDuracaoProcedimentos(novoMapaDuracao);
-      console.log("Mapa de duração de procedimentos carregado:", novoMapaDuracao);
+      // Mapa não é mais necessário aqui para derivação (mantemos se precisar em outras telas)
 
       let queryPacientes = supabase
         .from('pacientes')
-        .select('id, nome, cpf, whatsapp, data_nascimento, email, status, created_at, procedimentos_realizados(id, data_procedimento, procedimento_nome)')
+        .select('id, nome, cpf, whatsapp, data_nascimento, email, status, created_at, procedimentos_realizados(id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses ))')
         .order('nome', { ascending: true });
 
       if (filtroNome) {
@@ -158,66 +153,23 @@ export default function GerenciarPacientesPage() {
         return;
       }
 
-      const hojeUtc = new Date(); 
-      hojeUtc.setUTCHours(0,0,0,0);
+      const pacientesProcessados = (pacientesBase || []).map((paciente): PacienteComStatusCalculado => {
+        const procs = (paciente.procedimentos_realizados || []).map((p: any) => ({
+          data_procedimento: p.data_procedimento,
+          duracao_efeito_meses: p.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined,
+        }));
+        const status_calculado = derivePatientStatusFromProcedures({
+          procedimentos: procs,
+          created_at: paciente.created_at,
+          paciente_status_banco: paciente.status,
+        });
 
-      const pacientesProcessados = pacientesBase.map((paciente): PacienteComStatusCalculado => {
-        let status_calculado: string;
-
-        if (paciente.status === 'Inativo') {
-          status_calculado = 'Inativo';
-        } else {
-          const procsRealizados = paciente.procedimentos_realizados || [];
-          
-          if (procsRealizados.length === 0) {
-            status_calculado = 'Novo';
-          } else {
-            const procsOrdenados = [...procsRealizados].sort((a, b) => {
-                if (!a.data_procedimento || !b.data_procedimento) return 0;
-                return new Date(b.data_procedimento).getTime() - new Date(a.data_procedimento).getTime();
-            });
-            
-            const ultimoProcedimento = procsOrdenados[0];
-            
-            if (!ultimoProcedimento || !ultimoProcedimento.data_procedimento || !ultimoProcedimento.procedimento_nome) {
-              status_calculado = 'Verificar'; 
-            } else {
-              const chaveLookup = String(ultimoProcedimento.procedimento_nome).toLowerCase();
-              const duracaoMeses = novoMapaDuracao.get(chaveLookup);
-
-              if (duracaoMeses === undefined || duracaoMeses === null || isNaN(duracaoMeses) || duracaoMeses <= 0) {
-                status_calculado = 'Verificar'; 
-              } else {
-                const dataRealizacao = new Date(ultimoProcedimento.data_procedimento);
-                // As datas do Supabase (DATE YYYY-MM-DD) são interpretadas como UTC meia-noite pelo new Date().
-                // Para evitar problemas de fuso horário ao adicionar meses, vamos trabalhar com UTC.
-                dataRealizacao.setUTCHours(0,0,0,0); 
-                
-                const dataVencimento = new Date(dataRealizacao.getTime()); // Cria cópia
-                dataVencimento.setUTCMonth(dataVencimento.getUTCMonth() + duracaoMeses);
-                
-                // Não é necessário setHours(0,0,0,0) em dataVencimento de novo se dataRealizacao já estava assim.
-
-                const diffDiasParaVencer = (dataVencimento.getTime() - hojeUtc.getTime()) / (1000 * 60 * 60 * 24);
-
-                if (diffDiasParaVencer < 0) {
-                  status_calculado = 'Vencido';
-                } else if (diffDiasParaVencer <= 30) {
-                  status_calculado = 'Contato';
-                } else {
-                  status_calculado = 'Ativo';
-                }
-              }
-            }
-          }
-        }
-        
         return {
           ...paciente,
           status_calculado,
           cpf_formatado: formatarCPF(paciente.cpf),
           created_at_formatada: formatarData(paciente.created_at),
-        };
+        } as any;
       });
 
       let pacientesFiltradosFinal = pacientesProcessados;
@@ -238,6 +190,17 @@ export default function GerenciarPacientesPage() {
   useEffect(() => {
     fetchDadosParaStatus();
   }, [fetchDadosParaStatus]); 
+
+  // Lê filtro de status via URL e aplica ao carregar
+  useEffect(() => {
+    const statusParam = searchParams?.get('status');
+    if (statusParam) {
+      const validos = ['Todos','Novo','Ativo','Contato','Vencido','Verificar','Inativo'];
+      if (validos.includes(statusParam)) {
+        setFiltroStatus(statusParam);
+      }
+    }
+  }, [searchParams]);
 
 
   const handleDeleteRequest = (paciente: PacienteComStatusCalculado) => {
@@ -273,8 +236,26 @@ export default function GerenciarPacientesPage() {
 
   if (loading && pacientesParaLista.length === 0) {
     return (
-      <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <AppleLikeLoader text="Carregando dados dos pacientes..." />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header skeleton */}
+        <div className="mb-6 md:flex md:items-center md:justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="animate-pulse bg-slate-200 rounded-lg h-8 w-48 mb-2"></div>
+            <div className="animate-pulse bg-slate-200 rounded-lg h-4 w-64"></div>
+          </div>
+          <div className="mt-4 flex md:mt-0 md:ml-4">
+            <div className="animate-pulse bg-slate-200 rounded-xl h-12 w-32"></div>
+          </div>
+        </div>
+
+        {/* Filtros skeleton */}
+        <div className="mb-6 flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="animate-pulse bg-slate-200 rounded-lg h-12 flex-1"></div>
+          <div className="animate-pulse bg-slate-200 rounded-lg h-12 w-48"></div>
+        </div>
+
+        {/* Cards skeleton */}
+        <SkeletonLoader type="table" />
       </div>
     );
   }
@@ -283,10 +264,10 @@ export default function GerenciarPacientesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6 md:flex md:items-center md:justify-between">
         <div className="flex-1 min-w-0">
-          <h2 className="text-fluid-h1 text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900">
             Gerenciar Pacientes
-          </h2>
-          <p className="mt-2 text-base text-slate-600">
+          </h1>
+          <p className="text-slate-600 text-sm mt-1">
             Visualize e gerencie todos os pacientes cadastrados
           </p>
         </div>
@@ -327,17 +308,25 @@ export default function GerenciarPacientesPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {pacientesParaLista.map((paciente) => (
+        {pacientesParaLista.map((paciente) => {
+          const criadoHaMs = Date.now() - new Date(paciente.created_at).getTime();
+          const isNovo = criadoHaMs <= 24 * 60 * 60 * 1000; // < 24h
+          return (
           <div key={paciente.id} className="relative bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-5 transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30">
             <div className="flex justify-between items-start mb-2">
               <div className="flex items-center space-x-2">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold shadow-sm border border-white/30 ${getStatusColor(paciente.status_calculado)} absolute -top-3 left-3`}>{paciente.status_calculado}</span>
+                {paciente.status_calculado && (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold shadow-sm border border-white/30 ${getStatusColor(paciente.status_calculado)} absolute -top-3 left-3`}>{paciente.status_calculado}</span>
+                )}
 
                 <Link 
-                  href={`/procedimentos?filtroNome=${encodeURIComponent(paciente.nome)}`}
-                  className="text-lg font-bold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors block pr-10"
+                  href={`/pacientes/${paciente.id}`}
+                  className="text-lg font-bold text-slate-900 hover:text-blue-600 cursor-pointer transition-colors block pr-10 flex items-center gap-2"
                 >
                   {paciente.nome}
+                  {isNovo && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500 text-white shadow-sm">Novo</span>
+                  )}
                 </Link>
               </div>
               <div className="flex space-x-2 absolute top-3 right-3">
@@ -366,7 +355,8 @@ export default function GerenciarPacientesPage() {
             </div>
             <p className="text-sm text-slate-600 mb-1"><strong>Data de Criação:</strong> {new Date(paciente.created_at).toLocaleDateString('pt-BR')}</p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {showConfirmDeleteModal && pacienteParaDeletar && (
@@ -392,10 +382,28 @@ export default function GerenciarPacientesPage() {
 
       {/* Modal para Novo Paciente */}
       {showNovoPacienteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70 backdrop-blur-xl">
-          <div className="bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4">
-            <h3 className="text-2xl font-bold text-slate-900 mb-4">Cadastrar Novo Paciente</h3>
-            <PacienteForm onCancel={() => setShowNovoPacienteModal(false)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 bg-opacity-80">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header do Modal */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900">Cadastrar Novo Paciente</h3>
+                <p className="text-slate-600 text-sm mt-1">Preencha as informações do paciente</p>
+              </div>
+              <button
+                onClick={() => setShowNovoPacienteModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Conteúdo do Modal */}
+            <div className="p-6">
+              <PacienteForm onCancel={() => setShowNovoPacienteModal(false)} />
+            </div>
           </div>
         </div>
       )}

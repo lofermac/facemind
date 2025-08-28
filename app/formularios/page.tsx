@@ -69,7 +69,7 @@ export default function FormulariosPage() {
   if (loading) {
     return (
       <div className="p-6 text-center flex justify-center items-center min-h-[calc(100vh-100px)]">
-        <AppleLikeLoader text="Carregando dados dos formulários..." />
+        <AppleLikeLoader />
       </div>
     );
   }
@@ -78,8 +78,8 @@ export default function FormulariosPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-[2rem] font-extrabold text-slate-900">Gerenciar Formulários</h1>
-          <p className="text-[1.125rem] text-slate-600 mt-1">Visualize e gerencie todos os formulários disponíveis</p>
+          <h1 className="text-2xl font-bold text-slate-900">Gerenciar Formulários</h1>
+          <p className="text-slate-600 text-sm mt-1">Visualize e gerencie todos os formulários disponíveis</p>
         </div>
         <button
           onClick={() => router.push('/formularios/modelos')}

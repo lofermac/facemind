@@ -6,12 +6,12 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   { name: 'Visão Geral', href: '/dashboard' },
+  { name: 'Agenda', href: '/agenda' },
   { name: 'Pacientes', href: '/pacientes' },
   { name: 'Procedimentos', href: '/procedimentos' }, 
   { name: 'Formulários', href: '/formularios' },
   { name: 'Tabela de Valores', href: '/tabela-valores' },
   { name: 'Financeiro', href: '/financeiro' },
-  { name: 'Configurações', href: '/configuracoes' },
 ];
 
 export default function MainMenuTabs() {
@@ -20,7 +20,7 @@ export default function MainMenuTabs() {
   if (!pathname) return null;
 
   return (
-    <div className="hidden md:block bg-white/60 backdrop-blur-xl shadow border-b border-white/10">
+    <div className="hidden md:block sticky top-0 z-30 bg-white shadow border-b border-white/10">
       <nav className="max-w-7xl mx-auto -mb-px flex justify-center space-x-8 px-4 sm:px-6 lg:px-8 h-16 items-center" aria-label="Tabs">
         {tabs.map((tab) => {
           const effectiveIsActive = tab.href === '/dashboard' ? pathname === tab.href : pathname.startsWith(tab.href);

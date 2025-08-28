@@ -54,7 +54,7 @@ export default function FinanceiroPage() {
       // Buscar procedimentos com nome do paciente
       const { data, error } = await supabase
         .from('procedimentos_realizados')
-        .select('id, data_procedimento, procedimento_nome, categoria_nome, valor_cobrado, custo_produto, custo_insumos, custo_sala, paciente_id, pacientes (nome)')
+        .select('id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento ), categoria_nome, valor_cobrado, custo_produto, custo_insumos, custo_sala, paciente_id, pacientes (nome)')
         .order('data_procedimento', { ascending: false });
       if (!error && data) {
         // Mapear nome do paciente para cada procedimento
@@ -147,8 +147,8 @@ export default function FinanceiroPage() {
     <div className="py-8 px-4 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="mb-6 text-center md:text-left">
-          <h1 className="text-2xl font-extrabold leading-8 text-slate-900 sm:text-4xl sm:leading-9">Financeiro</h1>
-          <p className="mt-1 text-sm sm:text-base text-slate-600">Visualize e gerencie todos os dados financeiros da clínica</p>
+          <h1 className="text-2xl font-bold text-slate-900">Financeiro</h1>
+          <p className="text-slate-600 text-sm mt-1">Visualize e gerencie todos os dados financeiros da clínica</p>
         </div>
         {/* Menu de abas sutil no topo */}
         <div className="flex flex-col gap-6 mb-8 w-full">
@@ -367,7 +367,7 @@ export default function FinanceiroPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={5} className="py-12"><AppleLikeLoader text="Carregando dados dos procedimentos..." /></td></tr>
+                    <tr><td colSpan={5} className="py-12"><div className="flex justify-center"><AppleLikeLoader /></div></td></tr>
                   ) : procedimentosFiltrados.slice(0, 10).map((proc, idx, arr) => (
                     <Link key={proc.id} href={`/procedimentos/editar/${proc.id}`} legacyBehavior>
                       <tr

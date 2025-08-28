@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, UserGroupIcon, ReceiptPercentIcon, CreditCardIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, UserGroupIcon, ReceiptPercentIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 
 const tabs = [
   { name: 'Home', href: '/dashboard', Icon: HomeIcon },
   { name: 'Pacientes', href: '/pacientes', Icon: UserGroupIcon },
   { name: 'Procedimentos', href: '/procedimentos', Icon: ReceiptPercentIcon },
   { name: 'Financeiro', href: '/financeiro', Icon: CreditCardIcon },
-  { name: 'Config', href: '/configuracoes', Icon: Cog6ToothIcon },
 ];
 
 export default function MobileBottomNav() {

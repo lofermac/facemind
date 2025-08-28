@@ -9,6 +9,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/utils/supabaseClient'; 
 import { toast } from 'sonner';
 import ProcedimentoValorFormModal from '@/components/ProcedimentoValorFormModal'; 
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 interface CategoriaDetalhes {
   id: string;
@@ -46,7 +47,7 @@ export default function ProcedimentosPorCategoriaPage() {
 
   async function fetchDadosDaPagina() {
     if (!categoriaId) {
-      toast.error("ID da categoria não fornecido.");
+      toast.error('ID da categoria não fornecido.');
       setLoading(false);
       router.push('/tabela-valores');
       return;
@@ -125,71 +126,108 @@ export default function ProcedimentosPorCategoriaPage() {
     }
   };
 
-  if (loading) return <div className="p-6 text-center">Carregando...</div>;
-  if (!categoria) return <div className="p-6 text-center text-red-500">Categoria não encontrada.</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <AppleLikeLoader />
+        </div>
+      </div>
+    </div>
+  );
+  if (!categoria) return (
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center text-red-500">Categoria não encontrada.</div>
+      </div>
+    </div>
+  );
 
   const procedimentosFiltrados = procedimentos.filter(p =>
     p.nome_procedimento?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <button onClick={() => router.push('/tabela-valores')} className="text-sm text-blue-600 hover:text-blue-800 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-          Voltar para Categorias
-        </button>
-      </div>
-      <div className="mb-6 md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">{categoria.nome}</h2>
-          <p className="mt-1 text-sm text-gray-500">Itens da tabela de valores para {categoria.nome}</p>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <button onClick={() => router.push('/tabela-valores')} className="text-sm text-blue-600 hover:text-blue-800 flex items-center font-bold mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Voltar para Categorias
+            </button>
+            <h1 className="text-2xl font-bold text-slate-900">{categoria.nome}</h1>
+            <p className="text-slate-600 text-sm mt-1">Itens da tabela de valores para {categoria.nome}</p>
+          </div>
           <button type="button" onClick={handleOpenPvModalParaNovo}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-            + Novo Item na Tabela
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center">
+            <span className="mr-2">+</span>
+            Novo Item na Tabela
           </button>
         </div>
-      </div>
-      <div className="mb-6">
-        <input type="text" placeholder="Buscar por nome do procedimento..."
-          className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-3"
-          value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-      </div>
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="border-t border-gray-200 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procedimento</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duração (Meses)</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pix</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">4x</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">6x</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading && procedimentosFiltrados.length === 0 && ( <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">Carregando...</td></tr> )}
-              {!loading && procedimentosFiltrados.length === 0 && ( <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">Nenhum item cadastrado.</td></tr> )}
-              {!loading && procedimentosFiltrados.map((proc) => (
-                <tr key={proc.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{proc.nome_procedimento}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{proc.duracao_efeito_meses ?? '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatarValorMonetario(proc.valor_pix)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatarValorMonetario(proc.valor_4x)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatarValorMonetario(proc.valor_6x)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button onClick={() => handleOpenPvModalParaEditar(proc)} className="text-blue-600 hover:text-blue-900" title="Editar">✏️</button>
-                    <button onClick={() => handleDeleteProcedimentoValor(proc.id, proc.nome_procedimento)} className="text-red-600 hover:text-red-900" title="Excluir">🗑️</button>
-                  </td>
+
+        {/* Busca */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Buscar por nome do procedimento..."
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Tabela */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Procedimento</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Duração (Meses)</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Pix</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">4x</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">6x</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {loading && procedimentosFiltrados.length === 0 && (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center"><AppleLikeLoader /></td></tr>
+                )}
+                {!loading && procedimentosFiltrados.length === 0 && (
+                  <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-slate-500">Nenhum item cadastrado.</td></tr>
+                )}
+                {!loading && procedimentosFiltrados.map((proc, idx) => (
+                  <tr key={proc.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50 transition-colors`}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{proc.nome_procedimento}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{proc.duracao_efeito_meses ?? '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatarValorMonetario(proc.valor_pix)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{formatarValorMonetario(proc.valor_4x)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{formatarValorMonetario(proc.valor_6x)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button onClick={() => handleOpenPvModalParaEditar(proc)} className="inline-flex items-center px-3 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 mr-2 transition-colors" title="Editar">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button onClick={() => handleDeleteProcedimentoValor(proc.id, proc.nome_procedimento)} className="inline-flex items-center px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors" title="Excluir">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
       <ProcedimentoValorFormModal
         isOpen={isPvModalOpen}
         onClose={handleClosePvModal}

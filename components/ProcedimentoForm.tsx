@@ -29,6 +29,7 @@ export interface ProcedimentoRealizadoFormData {
 export interface ProcedimentoRealizadoExistente extends ProcedimentoRealizadoFormData {
     id: string;
     created_at: string;
+    procedimento_tabela_valores_id?: string | null; // usar o ID salvo para pré-seleção
 }
 
 interface ProcedimentoFormProps {
@@ -92,39 +93,72 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
   useEffect(() => { /* Busca procedimentos da TV */
     if (categoriaTVSelId) {
       async function fetchProcedimentosTV() {
-        setListaProcedimentosTV([]); setProcedimentoTVSelId(''); 
-        setProcedimentoNomeSelecionado(''); 
-        setValorCobrado(isEditMode && procedimentoInicial ? (procedimentoInicial.valor_cobrado?.toString() || '') : ''); 
-        const { data, error } = await supabase.from('procedimentos_tabela_valores').select('*').eq('categoria_id', categoriaTVSelId).order('nome_procedimento', { ascending: true });
-        if (error) toast.error('Erro ao carregar procedimentos da categoria.');
-        else if (data) setListaProcedimentosTV(data as ProcedimentoValor[]);
+        // Em modo criação, limpar; em edição, não limpar para preservar o valor durante o carregamento
+        if (!isEditMode) {
+          setListaProcedimentosTV([]);
+          setProcedimentoTVSelId('');
+          setProcedimentoNomeSelecionado('');
+          setValorCobrado('');
+        }
+        const { data, error } = await supabase
+          .from('procedimentos_tabela_valores')
+          .select('*')
+          .eq('categoria_id', categoriaTVSelId)
+          .order('nome_procedimento', { ascending: true });
+        if (error) {
+          toast.error('Erro ao carregar procedimentos da categoria.');
+          return;
+        }
+        const lista = (data as ProcedimentoValor[]) || [];
+        setListaProcedimentosTV(lista);
+        // Pré-selecionar imediatamente em modo edição
+        if (isEditMode && procedimentoInicial?.procedimento_nome) {
+          const procMatch = lista.find(p => p.nome_procedimento === procedimentoInicial.procedimento_nome);
+          if (procMatch) {
+            setProcedimentoTVSelId(procMatch.id);
+            setProcedimentoNomeSelecionado(procMatch.nome_procedimento);
+            // Só define valor cobrado se não houver um valor já carregado do registro
+            setValorCobrado(prev => prev || procMatch.valor_pix?.toString() || '');
+          }
+        }
       }
       fetchProcedimentosTV();
     } else {
-      setListaProcedimentosTV([]); setProcedimentoTVSelId('');
-      setProcedimentoNomeSelecionado('');
-      if (!isEditMode || (isEditMode && !procedimentoInicial?.valor_cobrado)) setValorCobrado('');
+      setListaProcedimentosTV([]);
+      if (!isEditMode) {
+        setProcedimentoTVSelId('');
+        setProcedimentoNomeSelecionado('');
+        setValorCobrado('');
+      }
     }
   }, [categoriaTVSelId, isEditMode, procedimentoInicial]); 
   
-  useEffect(() => { /* Preenche o formulário em modo de edição */
+  // 1. Ajuste para manter selects e data sempre pré-selecionados corretamente
+  useEffect(() => {
     if (isEditMode && procedimentoInicial) {
       setPacienteIdSelecionado(procedimentoInicial.paciente_id || '');
       const catNomeIni = procedimentoInicial.categoria_nome || '';
       const procNomeIni = procedimentoInicial.procedimento_nome || '';
-      setCategoriaNomeSelecionado(catNomeIni); 
+      setCategoriaNomeSelecionado(catNomeIni);
       setProcedimentoNomeSelecionado(procNomeIni);
+      // Categoria
       if (catNomeIni && listaCategoriasTV.length > 0) {
         const catMatch = listaCategoriasTV.find(c => c.nome === catNomeIni);
-        if (catMatch) setCategoriaTVSelId(catMatch.id); else setCategoriaTVSelId(''); 
-      } else if (!catNomeIni) setCategoriaTVSelId(''); 
+        if (catMatch) setCategoriaTVSelId(catMatch.id); else setCategoriaTVSelId('');
+      } else if (!catNomeIni) setCategoriaTVSelId('');
+      // Procedimento
+      if (procNomeIni && listaProcedimentosTV.length > 0) {
+        const procMatch = listaProcedimentosTV.find(p => p.nome_procedimento === procNomeIni);
+        if (procMatch) setProcedimentoTVSelId(procMatch.id); else setProcedimentoTVSelId('');
+      }
+      // Data
       const dataDoBanco = procedimentoInicial.data_procedimento;
       if (dataDoBanco && typeof dataDoBanco === 'string') {
-        const parts = dataDoBanco.split('-'); 
+        const parts = dataDoBanco.split('-');
         if (parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
           setDataProcedimentoMask(parts[2] + "/" + parts[1] + "/" + parts[0]);
-        } else setDataProcedimentoMask(''); 
-      } else setDataProcedimentoMask(''); 
+        } else setDataProcedimentoMask('');
+      } else setDataProcedimentoMask('');
       setValorCobrado(procedimentoInicial.valor_cobrado?.toString() || '');
       setCustoProduto(procedimentoInicial.custo_produto?.toString() || '');
       setCustoInsumos(procedimentoInicial.custo_insumos?.toString() || '');
@@ -132,22 +166,39 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       setObservacoes(procedimentoInicial.observacoes || '');
       setUrlsFotosAntesExistentes(procedimentoInicial.fotos_antes_urls || []);
       setUrlsFotosDepoisExistentes(procedimentoInicial.fotos_depois_urls || []);
-    } else { /* Reset para modo de criação */ 
-      setPacienteIdSelecionado(''); setCategoriaTVSelId(''); setProcedimentoTVSelId('');
-      setCategoriaNomeSelecionado(''); setProcedimentoNomeSelecionado('');
-      setDataProcedimentoMask(''); setValorCobrado(''); setCustoProduto('');
-      setCustoInsumos(''); setCustoSala(''); setObservacoes('');
-      setArquivosAntes(null); setArquivosDepois(null);
-      setUrlsFotosAntesExistentes([]); setUrlsFotosDepoisExistentes([]);
     }
-  }, [procedimentoInicial, isEditMode, listaCategoriasTV]);
+  }, [isEditMode, procedimentoInicial, listaCategoriasTV, listaProcedimentosTV]);
 
-  useEffect(() => { /* Pré-seleciona procedimento em modo de edição */
-    if (isEditMode && procedimentoInicial?.procedimento_nome && categoriaTVSelId && listaProcedimentosTV.length > 0) {
-      const procMatch = listaProcedimentosTV.find(p => p.nome_procedimento === procedimentoInicial.procedimento_nome);
-      if (procMatch) setProcedimentoTVSelId(procMatch.id); else setProcedimentoTVSelId('');
+  // Pré-seleção robusta do procedimento por ID (fallback por nome)
+  useEffect(() => {
+    if (!isEditMode || !procedimentoInicial) return;
+    // Só tenta quando já temos categoria definida e a lista de procedimentos carregada
+    if (!categoriaTVSelId || listaProcedimentosTV.length === 0) return;
+
+    const initProcId = (procedimentoInicial.procedimento_tabela_valores_id as string) || '';
+    let selectedId = procedimentoTVSelId;
+
+    if (!selectedId) {
+      if (initProcId) {
+        const matchById = listaProcedimentosTV.find(p => p.id === initProcId);
+        if (matchById) selectedId = matchById.id;
+      }
+      if (!selectedId && procedimentoInicial.procedimento_nome) {
+        const matchByName = listaProcedimentosTV.find(p => p.nome_procedimento === procedimentoInicial.procedimento_nome);
+        if (matchByName) selectedId = matchByName.id;
+      }
     }
-  }, [isEditMode, procedimentoInicial, categoriaTVSelId, listaProcedimentosTV]);
+
+    if (selectedId && procedimentoTVSelId !== selectedId) {
+      setProcedimentoTVSelId(selectedId);
+      const proc = listaProcedimentosTV.find(p => p.id === selectedId);
+      if (proc) {
+        setProcedimentoNomeSelecionado(proc.nome_procedimento);
+        // manter valor do registro; se vazio, usar sugestão da tabela de valores
+        setValorCobrado(prev => prev || proc.valor_pix?.toString() || '');
+      }
+    }
+  }, [isEditMode, procedimentoInicial, categoriaTVSelId, listaProcedimentosTV, procedimentoTVSelId]);
 
   useEffect(() => { /* Atualiza o nome do procedimento após seleção */
     if (procedimentoTVSelId) {
@@ -273,7 +324,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
-      procedimento_nome: procedimentoNomeSelecionado.trim(),
+      procedimento_tabela_valores_id: procedimentoTVSelId,
       data_procedimento: dataFormatadaParaSalvar,
       valor_cobrado: parseFloat(valorCobrado) || 0,
       custo_produto: parseFloat(custoProduto) || 0,
@@ -378,6 +429,19 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     }
   };
 
+  // 2. Remover setas dos inputs monetários
+  const inputNumberNoArrows = {
+    MozAppearance: 'textfield',
+    appearance: 'textfield',
+  };
+  const inputNumberNoArrowsWebkit = `
+    input[type=number]::-webkit-outer-spin-button,
+    input[type=number]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  `;
+
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -404,10 +468,12 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 const selectedId = e.target.value;
                 const selectedOption = e.target.options[e.target.selectedIndex];
                 setCategoriaTVSelId(selectedId);
-                setCategoriaNomeSelecionado(selectedId ? selectedOption.text : ''); 
-                setProcedimentoTVSelId(''); 
-                setProcedimentoNomeSelecionado(''); 
-                setValorCobrado(''); 
+                setCategoriaNomeSelecionado(selectedId ? selectedOption.text : '');
+                if (!isEditMode) {
+                  setProcedimentoTVSelId('');
+                  setProcedimentoNomeSelecionado('');
+                  setValorCobrado('');
+                }
               }} 
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
@@ -458,31 +524,35 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
             <label htmlFor="valorCobrado" className="block text-sm font-medium text-gray-700">Valor Cobrado <span className="text-red-500">*</span></label>
-            <input type="number" name="valorCobrado" id="valorCobrado" value={valorCobrado} onChange={(e) => setValorCobrado(e.target.value)} required  step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
-              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
-              placeholder="0.00"/>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
+              <input type="number" name="valorCobrado" id="valorCobrado" value={valorCobrado} onChange={(e) => setValorCobrado(e.target.value)} required step="0.01"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+            </div>
           </div>
           <div>
-            <label htmlFor="custoProduto" className="block text-sm font-medium text-gray-700">Custo do Produto</label> 
-            <input type="number" name="custoProduto" id="custoProduto" value={custoProduto} onChange={(e) => setCustoProduto(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
-              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
-              placeholder="0.00"/>
+            <label htmlFor="custoProduto" className="block text-sm font-medium text-gray-700">Custo do Produto</label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
+              <input type="number" name="custoProduto" id="custoProduto" value={custoProduto} onChange={(e) => setCustoProduto(e.target.value)} step="0.01"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+            </div>
           </div>
           <div>
             <label htmlFor="custoInsumos" className="block text-sm font-medium text-gray-700">Custo dos Insumos</label>
-            <input type="number" name="custoInsumos" id="custoInsumos" value={custoInsumos} onChange={(e) => setCustoInsumos(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
-              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
-              placeholder="0.00"/>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
+              <input type="number" name="custoInsumos" id="custoInsumos" value={custoInsumos} onChange={(e) => setCustoInsumos(e.target.value)} step="0.01"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+            </div>
           </div>
           <div>
             <label htmlFor="custoSala" className="block text-sm font-medium text-gray-700">Custo da Sala</label>
-            <input type="number" name="custoSala" id="custoSala" value={custoSala} onChange={(e) => setCustoSala(e.target.value)} step="0.01"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
-              inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ WebkitAppearance: 'none' }}
-              placeholder="0.00"/>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
+              <input type="number" name="custoSala" id="custoSala" value={custoSala} onChange={(e) => setCustoSala(e.target.value)} step="0.01"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+            </div>
           </div>
         </div>
          <div className="pt-2">
@@ -515,13 +585,13 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                       <span className="text-xs text-blue-500 mt-1">Adicione várias imagens</span>
                       <input type="file" multiple accept="image/*" onChange={e => handleFileChange(e, 'antes')} className="hidden" />
                       {previewAntes.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 mt-3 p-3 border rounded-lg bg-blue-50">
                           {previewAntes.map((src, idx) => (
                             <div key={idx} className="relative group">
                               <img
                                 src={src}
                                 alt={`Preview Antes ${idx + 1}`}
-                                className="w-20 h-20 object-cover rounded-lg border border-blue-200 shadow-sm"
+                                className="w-full aspect-square object-cover rounded-lg border-2 border-blue-300 shadow-md"
                               />
                               <button
                                 type="button"
@@ -539,7 +609,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                     {isEditMode && urlsFotosAntesExistentes.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Antes):</p>
-                        <div className="flex flex-wrap gap-2 p-2 border rounded-md">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 p-4 border rounded-lg bg-slate-50">
                           {urlsFotosAntesExistentes.map((url, index) => {
                             const corrigido = url
                               .replace('facemind-files.bunnycdn.com', 'facemind.b-cdn.net')
@@ -559,7 +629,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                                     }
                                   }}
                                   alt={`Foto Antes ${index + 1}`}
-                                  className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
+                                  className="w-full aspect-square object-cover rounded-lg border-2 border-white shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
                                   onClick={() => handleAbrirImagemModal(corrigido)}
                                 />
                                 <button
@@ -591,13 +661,13 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                       <span className="text-xs text-green-500 mt-1">Adicione várias imagens</span>
                       <input type="file" multiple accept="image/*" onChange={e => handleFileChange(e, 'depois')} className="hidden" />
                       {previewDepois.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-3">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 mt-3 p-3 border rounded-lg bg-green-50">
                           {previewDepois.map((src, idx) => (
                             <div key={idx} className="relative group">
                               <img
                                 src={src}
                                 alt={`Preview Depois ${idx + 1}`}
-                                className="w-20 h-20 object-cover rounded-lg border border-green-200 shadow-sm"
+                                className="w-full aspect-square object-cover rounded-lg border-2 border-green-300 shadow-md"
                               />
                               <button
                                 type="button"
@@ -615,7 +685,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                     {isEditMode && urlsFotosDepoisExistentes.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs font-medium text-gray-600 mb-1">Fotos Atuais (Depois):</p>
-                        <div className="flex flex-wrap gap-2 p-2 border rounded-md">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 p-4 border rounded-lg bg-slate-50">
                           {urlsFotosDepoisExistentes.map((url, index) => {
                             const corrigido = url
                               .replace('facemind-files.bunnycdn.com', 'facemind.b-cdn.net')
@@ -635,7 +705,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                                     }
                                   }}
                                   alt={`Foto Depois ${index + 1}`}
-                                  className="h-24 w-24 object-cover rounded-md border shadow-sm cursor-pointer hover:opacity-75"
+                                  className="w-full aspect-square object-cover rounded-lg border-2 border-white shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
                                   onClick={() => handleAbrirImagemModal(corrigido)}
                                 />
                                 <button
@@ -675,6 +745,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         imageUrl={imagemEmVisualizacaoUrl} 
         altText="Visualização da foto do procedimento"
       />
+      <style>{inputNumberNoArrowsWebkit}</style>
     </>
   );
 }

@@ -5,12 +5,20 @@ interface CardMetricProps {
   title: string;
   value: string | number;
   IconComponent: React.ElementType; 
-  iconColor?: string;       
+  iconColor?: string;      
+  onClick?: () => void;
+  tooltip?: string;
 }
 
-export default function CardMetric({ title, value, IconComponent, iconColor = "text-gray-400" }: CardMetricProps) {
+export default function CardMetric({ title, value, IconComponent, iconColor = "text-gray-400", onClick, tooltip }: CardMetricProps) {
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-3 md:p-4 lg:p-6 group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30">
+    <div
+      className={`bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-3 md:p-4 lg:p-6 group hover:shadow-2xl transition-all duration-200 ease-in-out transform hover:-translate-y-1 border border-white/30 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
+      title={tooltip}
+    >
       <div className="flex items-center justify-between">
         <div>
           <dt className="text-[11px] md:text-xs font-semibold text-slate-600 truncate group-hover:text-blue-600 transition-colors duration-200 ease-in-out">

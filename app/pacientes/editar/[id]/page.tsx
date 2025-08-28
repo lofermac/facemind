@@ -3,11 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import PacienteForm, { PacienteExistente } from '@/components/PacienteForm'; // Verifique se o caminho está correto
+import PacienteForm, { PacienteExistente } from '@/components/PacienteForm';
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import AppleLikeLoader from '@/components/AppleLikeLoader';
 
 export default function EditarPacientePage() {
   const router = useRouter();
@@ -17,7 +17,6 @@ export default function EditarPacientePage() {
   const [pacienteParaEditar, setPacienteParaEditar] = useState<PacienteExistente | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showEditarPacienteModal, setShowEditarPacienteModal] = useState(true);
 
   useEffect(() => {
     if (pacienteId) {
@@ -27,18 +26,13 @@ export default function EditarPacientePage() {
         try {
           const { data, error: supabaseError } = await supabase
             .from('pacientes')
-            // Selecionando colunas explicitamente, incluindo 'whatsapp' e excluindo 'endereco' (conforme última correção)
             .select('id, nome, cpf, whatsapp, data_nascimento, email, status, created_at')
             .eq('id', pacienteId)
             .single();
 
-          if (supabaseError) {
-            throw supabaseError;
-          }
-
-          if (data) {
-            setPacienteParaEditar(data as PacienteExistente);
-          } else {
+          if (supabaseError) throw supabaseError;
+          if (data) setPacienteParaEditar(data as PacienteExistente);
+          else {
             setError('Paciente não encontrado.');
             toast.error('Paciente não encontrado.');
           }
@@ -57,7 +51,7 @@ export default function EditarPacientePage() {
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+        <AppleLikeLoader />
       </div>
     );
   }
@@ -75,28 +69,50 @@ export default function EditarPacientePage() {
 
   if (!pacienteParaEditar) {
     return (
-        <div className="container mx-auto p-6 text-center">
-            <p className="text-gray-500 text-xl mb-4">Paciente não disponível para edição.</p>
-            <Link href="/pacientes" className="text-blue-600 hover:text-blue-800">
-            Voltar para Lista de Pacientes
-            </Link>
-        </div>
+      <div className="container mx-auto p-6 text-center">
+        <p className="text-gray-500 text-xl mb-4">Paciente não disponível para edição.</p>
+        <Link href="/pacientes" className="text-blue-600 hover:text-blue-800">
+          Voltar para Lista de Pacientes
+        </Link>
+      </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
-      <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Editar Paciente
-        </h1>
-        <h2 className="text-xl text-gray-700 mb-8 border-b pb-4">
-          {pacienteParaEditar.nome}
-        </h2>
-        <PacienteForm 
-          pacienteInicial={pacienteParaEditar} 
-          onCancel={() => router.push('/pacientes')} 
-        />
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg mb-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => router.push('/pacientes')}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors font-bold"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Editar Paciente</h1>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-sm font-medium">Modo Edição</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Formulário */}
+        <div className="bg-white rounded-2xl p-6 shadow-lg">
+          <PacienteForm 
+            pacienteInicial={pacienteParaEditar} 
+            onCancel={() => router.push('/pacientes')} 
+          />
+        </div>
       </div>
     </div>
   );
