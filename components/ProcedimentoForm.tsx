@@ -74,7 +74,12 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
 
   useEffect(() => { /* Busca pacientes */ 
     async function fetchPacientesParaSelect() {
-      const { data, error } = await supabase.from('pacientes').select('id, nome').order('nome', { ascending: true });
+      // Excluir pacientes inativos da lista de seleção
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('id, nome, status')
+        .neq('status', 'Inativo')
+        .order('nome', { ascending: true });
       if (error) toast.error('Erro ao carregar lista de pacientes.');
       else if (data) setPacientes(data as PacienteSelecao[]);
     }
@@ -118,7 +123,9 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
             setProcedimentoTVSelId(procMatch.id);
             setProcedimentoNomeSelecionado(procMatch.nome_procedimento);
             // Só define valor cobrado se não houver um valor já carregado do registro
-            setValorCobrado(prev => prev || procMatch.valor_pix?.toString() || '');
+            if (!valorCobrado && procMatch.valor_pix) {
+              setValorCobrado(procMatch.valor_pix.toFixed(2).replace('.', ','));
+            }
           }
         }
       }
@@ -159,10 +166,11 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
           setDataProcedimentoMask(parts[2] + "/" + parts[1] + "/" + parts[0]);
         } else setDataProcedimentoMask('');
       } else setDataProcedimentoMask('');
-      setValorCobrado(procedimentoInicial.valor_cobrado?.toString() || '');
-      setCustoProduto(procedimentoInicial.custo_produto?.toString() || '');
-      setCustoInsumos(procedimentoInicial.custo_insumos?.toString() || '');
-      setCustoSala(procedimentoInicial.custo_sala?.toString() || '');
+      // Converter números para formato brasileiro (vírgula como separador decimal)
+      setValorCobrado(procedimentoInicial.valor_cobrado ? procedimentoInicial.valor_cobrado.toFixed(2).replace('.', ',') : '');
+      setCustoProduto(procedimentoInicial.custo_produto ? procedimentoInicial.custo_produto.toFixed(2).replace('.', ',') : '');
+      setCustoInsumos(procedimentoInicial.custo_insumos ? procedimentoInicial.custo_insumos.toFixed(2).replace('.', ',') : '');
+      setCustoSala(procedimentoInicial.custo_sala ? procedimentoInicial.custo_sala.toFixed(2).replace('.', ',') : '');
       setObservacoes(procedimentoInicial.observacoes || '');
       setUrlsFotosAntesExistentes(procedimentoInicial.fotos_antes_urls || []);
       setUrlsFotosDepoisExistentes(procedimentoInicial.fotos_depois_urls || []);
@@ -195,7 +203,9 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       if (proc) {
         setProcedimentoNomeSelecionado(proc.nome_procedimento);
         // manter valor do registro; se vazio, usar sugestão da tabela de valores
-        setValorCobrado(prev => prev || proc.valor_pix?.toString() || '');
+        if (!valorCobrado && proc.valor_pix) {
+          setValorCobrado(proc.valor_pix.toFixed(2).replace('.', ','));
+        }
       }
     }
   }, [isEditMode, procedimentoInicial, categoriaTVSelId, listaProcedimentosTV, procedimentoTVSelId]);
@@ -321,15 +331,16 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       fotosDepoisFinal = urlsDepois.length > 0 ? urlsDepois : null;
     }
 
+    // No handleSubmit, ajustar parseFloat para aceitar vírgula
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
       procedimento_tabela_valores_id: procedimentoTVSelId,
       data_procedimento: dataFormatadaParaSalvar,
-      valor_cobrado: parseFloat(valorCobrado) || 0,
-      custo_produto: parseFloat(custoProduto) || 0,
-      custo_insumos: parseFloat(custoInsumos) || 0,
-      custo_sala: parseFloat(custoSala) || 0,
+      valor_cobrado: parseFloat(valorCobrado.replace(',', '.')) || 0,
+      custo_produto: parseFloat(custoProduto.replace(',', '.')) || 0,
+      custo_insumos: parseFloat(custoInsumos.replace(',', '.')) || 0,
+      custo_sala: parseFloat(custoSala.replace(',', '.')) || 0,
       observacoes: observacoes.trim() || null,
       fotos_antes_urls: fotosAntesFinal,
       fotos_depois_urls: fotosDepoisFinal,
@@ -371,7 +382,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       isEditMode, procedimentoInicial, onSave
   ]);
 
-  const lucroCalculado = (parseFloat(valorCobrado) || 0) - ((parseFloat(custoProduto) || 0) + (parseFloat(custoInsumos) || 0) + (parseFloat(custoSala) || 0));
+  const lucroCalculado = (parseFloat(valorCobrado.replace(',', '.')) || 0) - ((parseFloat(custoProduto.replace(',', '.')) || 0) + (parseFloat(custoInsumos.replace(',', '.')) || 0) + (parseFloat(custoSala.replace(',', '.')) || 0));
 
   useEffect(() => {
     if (arquivosAntes) {
@@ -498,10 +509,15 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                   if (selectedProcId) {
                     setProcedimentoNomeSelecionado(selectedOption.text); 
                     const procSelObj = listaProcedimentosTV.find(p => p.id === selectedProcId);
-                    setValorCobrado(procSelObj?.valor_pix?.toString() || '');
+                    // Só define valor se não há valor digitado ou se é modo criação
+                    if ((!valorCobrado || !isEditMode) && procSelObj?.valor_pix) {
+                      setValorCobrado(procSelObj.valor_pix.toFixed(2).replace('.', ','));
+                    }
                   } else {
                     setProcedimentoNomeSelecionado('');
-                    setValorCobrado('');
+                    if (!isEditMode) {
+                      setValorCobrado('');
+                    }
                   }
               }} 
               disabled={!categoriaTVSelId || listaCategoriasTV.length === 0}
@@ -526,32 +542,105 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
             <label htmlFor="valorCobrado" className="block text-sm font-medium text-gray-700">Valor Cobrado <span className="text-red-500">*</span></label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
-              <input type="number" name="valorCobrado" id="valorCobrado" value={valorCobrado} onChange={(e) => setValorCobrado(e.target.value)} required step="0.01"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+              <IMaskInput
+                mask={Number}
+                radix=","  
+                scale={2}
+                signed={false}
+                thousandsSeparator="."
+                padFractionalZeros={false}
+                normalizeZeros={false}
+                mapToRadix={[',']}
+                min={0}
+                value={valorCobrado}
+                onAccept={(value: any) => setValorCobrado(value)}
+                onComplete={(value: any) => setValorCobrado(value)}
+                required
+                name="valorCobrado"
+                id="valorCobrado"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0,00"
+              />
             </div>
           </div>
           <div>
             <label htmlFor="custoProduto" className="block text-sm font-medium text-gray-700">Custo do Produto</label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
-              <input type="number" name="custoProduto" id="custoProduto" value={custoProduto} onChange={(e) => setCustoProduto(e.target.value)} step="0.01"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+              <IMaskInput
+                mask={Number}
+                radix=","  
+                scale={2}
+                signed={false}
+                thousandsSeparator="."
+                padFractionalZeros={false}
+                normalizeZeros={false}
+                mapToRadix={[',']}
+                min={0}
+                value={custoProduto}
+                onAccept={(value: any) => setCustoProduto(value)}
+                onComplete={(value: any) => setCustoProduto(value)}
+                name="custoProduto"
+                id="custoProduto"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0,00"
+              />
             </div>
           </div>
           <div>
             <label htmlFor="custoInsumos" className="block text-sm font-medium text-gray-700">Custo dos Insumos</label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
-              <input type="number" name="custoInsumos" id="custoInsumos" value={custoInsumos} onChange={(e) => setCustoInsumos(e.target.value)} step="0.01"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+              <IMaskInput
+                mask={Number}
+                radix=","  
+                scale={2}
+                signed={false}
+                thousandsSeparator="."
+                padFractionalZeros={false}
+                normalizeZeros={false}
+                mapToRadix={[',']}
+                min={0}
+                value={custoInsumos}
+                onAccept={(value: any) => setCustoInsumos(value)}
+                onComplete={(value: any) => setCustoInsumos(value)}
+                name="custoInsumos"
+                id="custoInsumos"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0,00"
+              />
             </div>
           </div>
           <div>
             <label htmlFor="custoSala" className="block text-sm font-medium text-gray-700">Custo da Sala</label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">R$</span>
-              <input type="number" name="custoSala" id="custoSala" value={custoSala} onChange={(e) => setCustoSala(e.target.value)} step="0.01"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none" inputMode="decimal" autoComplete="off" min="0" pattern="[0-9]*" style={{ ...inputNumberNoArrows }} />
+              <IMaskInput
+                mask={Number}
+                radix=","  
+                scale={2}
+                signed={false}
+                thousandsSeparator="."
+                padFractionalZeros={false}
+                normalizeZeros={false}
+                mapToRadix={[',']}
+                min={0}
+                value={custoSala}
+                onAccept={(value: any) => setCustoSala(value)}
+                onComplete={(value: any) => setCustoSala(value)}
+                name="custoSala"
+                id="custoSala"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="0,00"
+              />
             </div>
           </div>
         </div>

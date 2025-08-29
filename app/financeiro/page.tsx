@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../utils/supabaseClient';
-import { PiggyBank, Coins, LineChart, Percent, ListChecks, Package, FlaskConical, Building2 } from 'lucide-react';
+import { PiggyBank, Coins, LineChart, Percent, ListChecks, Package, FlaskConical, Building2, Users, Crown, TrendingUp, Target } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line, PieChart, Pie, Cell
 } from 'recharts';
 import { BarProps } from 'recharts';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
@@ -282,64 +282,637 @@ export default function FinanceiroPage() {
           </>
         )}
         {abaSelecionada === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Gráfico de Faturamento */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
-              <h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-2">
-                <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
-              </h2>
-              <div className="w-full h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
-                    <defs>
-                      <linearGradient id="faturamentoGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.7} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#e0e7ef" />
-                    <XAxis dataKey="mes" tick={{ fontSize: 15, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={v => `R$ ${v / 1000 >= 1 ? (v / 1000).toFixed(1) + 'k' : v}`}
-                      tick={{ fontSize: 14, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(59,130,246,0.08)' }}
-                      contentStyle={{ background: '#fff', borderRadius: 12, border: '1px solid #e0e7ef', fontSize: 15, boxShadow: '0 4px 24px 0 rgba(59,130,246,0.08)' }}
-                      formatter={value => formatarValor(Number(value))}
-                    />
-                    <Bar dataKey="total" name="Faturamento" radius={[12, 12, 8, 8]} fill="url(#faturamentoGradient)" />
-                  </BarChart>
-                </ResponsiveContainer>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Gráfico de Faturamento */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-2">
+                  <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="w-full h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
+                      <defs>
+                        <linearGradient id="faturamentoGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.7} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" stroke="#e0e7ef" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 15, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={v => `R$ ${v / 1000 >= 1 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                        tick={{ fontSize: 14, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(59,130,246,0.08)' }}
+                        contentStyle={{ background: '#fff', borderRadius: 12, border: '1px solid #e0e7ef', fontSize: 15, boxShadow: '0 4px 24px 0 rgba(59,130,246,0.08)' }}
+                        formatter={value => formatarValor(Number(value))}
+                      />
+                      <Bar dataKey="total" name="Faturamento" radius={[12, 12, 8, 8]} fill="url(#faturamentoGradient)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              {/* Gráfico de Lucro */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                  <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="w-full h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
+                      <defs>
+                        <linearGradient id="lucroGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#4ade80" stopOpacity={0.9} />
+                          <stop offset="100%" stopColor="#16a34a" stopOpacity={0.7} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" stroke="#e0e7ef" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 15, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={v => `R$ ${v / 1000 >= 1 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                        tick={{ fontSize: 14, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(34,197,94,0.08)' }}
+                        contentStyle={{ background: '#fff', borderRadius: 12, border: '1px solid #e0e7ef', fontSize: 15, boxShadow: '0 4px 24px 0 rgba(34,197,94,0.08)' }}
+                        formatter={value => formatarValor(Number(value))}
+                      />
+                      <Bar dataKey="lucro" name="Lucro" radius={[12, 12, 8, 8]} fill="url(#lucroGradient)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
-            {/* Gráfico de Lucro */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
-              <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
-              </h2>
-              <div className="w-full h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
-                    <defs>
-                      <linearGradient id="lucroGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#4ade80" stopOpacity={0.9} />
-                        <stop offset="100%" stopColor="#16a34a" stopOpacity={0.7} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#e0e7ef" />
-                    <XAxis dataKey="mes" tick={{ fontSize: 15, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={v => `R$ ${v / 1000 >= 1 ? (v / 1000).toFixed(1) + 'k' : v}`}
-                      tick={{ fontSize: 14, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(34,197,94,0.08)' }}
-                      contentStyle={{ background: '#fff', borderRadius: 12, border: '1px solid #e0e7ef', fontSize: 15, boxShadow: '0 4px 24px 0 rgba(34,197,94,0.08)' }}
-                      formatter={value => formatarValor(Number(value))}
-                    />
-                    <Bar dataKey="lucro" name="Lucro" radius={[12, 12, 8, 8]} fill="url(#lucroGradient)" />
-                  </BarChart>
-                </ResponsiveContainer>
+
+            {/* NOVOS WIDGETS INTELIGENTES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Widget 1: Top Categorias por Faturamento */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-purple-700 mb-6 flex items-center gap-2">
+                  <Crown className="w-7 h-7 text-purple-400" /> Top Categorias <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="space-y-4">
+                  {(() => {
+                    // Calcular top categorias por faturamento - ALTERADO
+                    const topCategorias = procedimentosParaGrafico
+                      .filter(p => p.valor_cobrado && p.valor_cobrado > 0) // Só procedimentos com valor
+                      .reduce((acc, p) => {
+                        // Pegar nome da categoria
+                        const categoria = p.categoria_nome || 'Sem Categoria';
+                        
+                        if (categoria && categoria !== 'Sem Categoria') {
+                          acc[categoria] = (acc[categoria] || 0) + (p.valor_cobrado || 0);
+                        }
+                        return acc;
+                      }, {} as Record<string, number>);
+                    
+                    const entries = Object.entries(topCategorias)
+                      .filter(([nome, valor]) => valor > 0 && nome !== 'Sem Categoria')
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 5);
+
+                    if (entries.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500">
+                          <p className="text-sm">Nenhuma categoria encontrada para {filtroAno}</p>
+                        </div>
+                      );
+                    }
+                    
+                    const maxValor = entries[0][1]; // Maior valor já está primeiro após sort
+                    
+                    return entries.map(([nome, valor], index) => {
+                      const cores = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500'];
+                      const porcentagem = maxValor > 0 ? (valor / maxValor) * 100 : 0;
+                      
+                      return (
+                        <div key={nome} className="flex items-center gap-4">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-semibold text-slate-700 text-sm" title={nome}>
+                                {nome.length > 25 ? `${nome.substring(0, 25)}...` : nome}
+                              </span>
+                              <span className="font-bold text-purple-600">{formatarValor(valor)}</span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${cores[index]} transition-all duration-500`}
+                                style={{ width: `${porcentagem}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* Widget 2: Distribuição por Categoria */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-orange-700 mb-6 flex items-center gap-2">
+                  <Target className="w-7 h-7 text-orange-400" /> Distribuição por Categoria <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={(() => {
+                          const categorias = procedimentosParaGrafico
+                            .filter(p => p.valor_cobrado && p.valor_cobrado > 0) // Só procedimentos com valor
+                            .reduce((acc, p) => {
+                              const cat = p.categoria_nome || 'Sem Categoria';
+                              if (cat && cat !== 'Sem Categoria') {
+                                acc[cat] = (acc[cat] || 0) + (p.valor_cobrado || 0);
+                              }
+                              return acc;
+                            }, {} as Record<string, number>);
+                          
+                          const cores = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899', '#14b8a6'];
+                          
+                          const dados = Object.entries(categorias)
+                            .filter(([nome, valor]) => valor > 0 && nome !== 'Sem Categoria')
+                            .map(([nome, valor], index) => ({
+                              name: nome,
+                              value: valor,
+                              fill: cores[index % cores.length]
+                            }))
+                            .sort((a, b) => b.value - a.value);
+
+                          // Se não há dados, retornar dados de placeholder
+                          if (dados.length === 0) {
+                            return [{
+                              name: 'Nenhum dado',
+                              value: 1,
+                              fill: '#e2e8f0'
+                            }];
+                          }
+
+                          return dados;
+                        })()}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value, name, props) => {
+                          const totalValue = procedimentosParaGrafico
+                            .filter(p => p.valor_cobrado && p.valor_cobrado > 0)
+                            .reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+                          const percentage = totalValue > 0 ? ((Number(value) / totalValue) * 100).toFixed(1) : '0.0';
+                          return [`${formatarValor(Number(value))} (${percentage}%)`, name];
+                        }}
+                        contentStyle={{ 
+                          background: '#fff', 
+                          borderRadius: 12, 
+                          border: '1px solid #e0e7ef', 
+                          fontSize: 14,
+                          boxShadow: '0 4px 24px 0 rgba(0,0,0,0.1)' 
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Segunda linha de novos widgets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Widget 3: Análise de Crescimento */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-emerald-700 mb-6 flex items-center gap-2">
+                  <TrendingUp className="w-7 h-7 text-emerald-400" /> Análise de Crescimento <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="space-y-6">
+                  {(() => {
+                    // Comparar com ano anterior - CORRIGIDO
+                    const anoAnterior = filtroAno - 1;
+                    
+                    // Filtrar procedimentos com valores válidos para análise precisa
+                    const procedimentosAtuaisValidos = procedimentosParaGrafico.filter(p => 
+                      p.valor_cobrado && p.valor_cobrado > 0 && p.data_procedimento
+                    );
+                    
+                    const procedimentosAnoAnterior = procedimentos.filter(p => {
+                      if (!p.data_procedimento || !p.valor_cobrado || p.valor_cobrado <= 0) return false;
+                      const ano = new Date(p.data_procedimento).getFullYear();
+                      return ano === anoAnterior;
+                    });
+                    
+                    const faturamentoAtual = procedimentosAtuaisValidos.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+                    const faturamentoAnterior = procedimentosAnoAnterior.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+                    
+                    const crescimentoFaturamento = faturamentoAnterior > 0 
+                      ? ((faturamentoAtual - faturamentoAnterior) / faturamentoAnterior) * 100 
+                      : (faturamentoAtual > 0 ? 100 : 0); // Se não havia faturamento anterior mas há atual = 100% crescimento
+                      
+                    const procedimentosAtual = procedimentosAtuaisValidos.length;
+                    const procedimentosAnterior = procedimentosAnoAnterior.length;
+                    
+                    const crescimentoProcedimentos = procedimentosAnterior > 0 
+                      ? ((procedimentosAtual - procedimentosAnterior) / procedimentosAnterior) * 100 
+                      : (procedimentosAtual > 0 ? 100 : 0);
+
+                    const ticketMedioAtual = procedimentosAtual > 0 ? faturamentoAtual / procedimentosAtual : 0;
+                    const ticketMedioAnterior = procedimentosAnterior > 0 ? faturamentoAnterior / procedimentosAnterior : 0;
+                    
+                    const crescimentoTicketMedio = ticketMedioAnterior > 0 
+                      ? ((ticketMedioAtual - ticketMedioAnterior) / ticketMedioAnterior) * 100 
+                      : (ticketMedioAtual > 0 ? 100 : 0);
+
+                    // Análises avançadas para insights estratégicos
+                    const diferencaFaturamento = faturamentoAtual - faturamentoAnterior;
+                    const diferencaTicketMedio = ticketMedioAtual - ticketMedioAnterior;
+                    
+                    // Análise de momentum (últimos vs primeiros meses do ano)
+                    const faturamentoPorMesAtual = Array.from({length: 12}, () => 0);
+                    procedimentosAtuaisValidos.forEach(p => {
+                      if (p.data_procedimento) {
+                        const mes = new Date(p.data_procedimento).getMonth();
+                        faturamentoPorMesAtual[mes] += p.valor_cobrado || 0;
+                      }
+                    });
+                    
+                    const mesesComDados = faturamentoPorMesAtual.filter(valor => valor > 0).length;
+                    const primeiros3Meses = faturamentoPorMesAtual.slice(0, 3).reduce((acc, val) => acc + val, 0);
+                    const ultimos3Meses = faturamentoPorMesAtual.slice(-3).reduce((acc, val) => acc + val, 0);
+                    const momentum = mesesComDados >= 6 ? (
+                      ultimos3Meses > primeiros3Meses ? 'Acelerando' : 
+                      ultimos3Meses < primeiros3Meses ? 'Desacelerando' : 'Estável'
+                    ) : 'Insuficiente';
+                    
+                    // Análise estratégica baseada nos crescimentos
+                    const estrategia = crescimentoFaturamento > 0 && crescimentoProcedimentos > 0 ? 'Expansão Saudável' :
+                                     crescimentoFaturamento > 0 && crescimentoProcedimentos <= 0 ? 'Valorização Premium' :
+                                     crescimentoFaturamento <= 0 && crescimentoProcedimentos > 0 ? 'Pressão de Preços' :
+                                     'Necessita Atenção';
+                    
+                    const corEstrategia = estrategia === 'Expansão Saudável' ? 'text-emerald-600' :
+                                        estrategia === 'Valorização Premium' ? 'text-purple-600' :
+                                        estrategia === 'Pressão de Preços' ? 'text-orange-600' : 'text-red-600';
+
+                    return (
+                      <>
+                        {/* Métricas principais com insights */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className="text-sm font-medium text-emerald-700 mb-3">Crescimento de Faturamento</p>
+                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-emerald-300/60 shadow-sm w-72">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-bold text-emerald-900">{filtroAno}</span>
+                                      <span className="text-sm font-semibold text-emerald-800">
+                                        {formatarValor(faturamentoAtual)}
+                                      </span>
+                                    </div>
+                                    <div className="h-px bg-gradient-to-r from-emerald-200 via-emerald-300 to-emerald-200 my-2"></div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-slate-600">{anoAnterior}</span>
+                                      <span className="text-sm text-slate-500">
+                                        {formatarValor(faturamentoAnterior)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-2xl font-bold ${crescimentoFaturamento >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {crescimentoFaturamento >= 0 ? '+' : ''}{crescimentoFaturamento.toFixed(1)}%
+                                  </div>
+                                  <div className={`text-xs font-semibold ${diferencaFaturamento >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {diferencaFaturamento >= 0 ? '+' : ''}{formatarValor(Math.abs(diferencaFaturamento))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className="text-sm font-medium text-blue-700 mb-3">Crescimento de Volume</p>
+                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-blue-300/60 shadow-sm w-72">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-bold text-blue-900">{filtroAno}</span>
+                                      <span className="text-sm font-semibold text-blue-800">
+                                        {procedimentosAtual} procedimentos
+                                      </span>
+                                    </div>
+                                    <div className="h-px bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 my-2"></div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-slate-600">{anoAnterior}</span>
+                                      <span className="text-sm text-slate-500">
+                                        {procedimentosAnterior} procedimentos
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-2xl font-bold ${crescimentoProcedimentos >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                    {crescimentoProcedimentos >= 0 ? '+' : ''}{crescimentoProcedimentos.toFixed(1)}%
+                                  </div>
+                                  <div className={`text-xs font-semibold ${(procedimentosAtual - procedimentosAnterior) >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                    {(procedimentosAtual - procedimentosAnterior) >= 0 ? '+' : ''}{procedimentosAtual - procedimentosAnterior} procs
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className="text-sm font-medium text-purple-700 mb-3">Crescimento de Ticket Médio</p>
+                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-purple-300/60 shadow-sm w-72">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-bold text-purple-900">{filtroAno}</span>
+                                      <span className="text-sm font-semibold text-purple-800">
+                                        {formatarValor(ticketMedioAtual)}
+                                      </span>
+                                    </div>
+                                    <div className="h-px bg-gradient-to-r from-purple-200 via-purple-300 to-purple-200 my-2"></div>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-sm font-medium text-slate-600">{anoAnterior}</span>
+                                      <span className="text-sm text-slate-500">
+                                        {formatarValor(ticketMedioAnterior)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-2xl font-bold ${crescimentoTicketMedio >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                                    {crescimentoTicketMedio >= 0 ? '+' : ''}{crescimentoTicketMedio.toFixed(1)}%
+                                  </div>
+                                  <div className={`text-xs font-semibold ${diferencaTicketMedio >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
+                                    {diferencaTicketMedio >= 0 ? '+' : ''}{formatarValor(Math.abs(diferencaTicketMedio))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Insights estratégicos */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                          <div className="p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-slate-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-medium text-slate-700">Momentum do Ano</p>
+                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                momentum === 'Acelerando' ? 'bg-green-100 text-green-700' :
+                                momentum === 'Desacelerando' ? 'bg-orange-100 text-orange-700' :
+                                momentum === 'Estável' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {momentum}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600">
+                              {momentum === 'Acelerando' ? 'Últimos 3 meses superiores aos primeiros' :
+                               momentum === 'Desacelerando' ? 'Últimos 3 meses inferiores aos primeiros' :
+                               momentum === 'Estável' ? 'Performance consistente ao longo do ano' :
+                               'Dados insuficientes para análise de tendência'}
+                            </p>
+                          </div>
+
+                          <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-medium text-slate-700">Estratégia Sugerida</p>
+                              <span className={`text-sm font-bold ${corEstrategia}`}>
+                                {estrategia}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600">
+                              {estrategia === 'Expansão Saudável' ? 'Crescimento equilibrado. Continue expandindo.' :
+                               estrategia === 'Valorização Premium' ? 'Foco em aumentar valor dos serviços funcionando.' :
+                               estrategia === 'Pressão de Preços' ? 'Revisar precificação e posicionamento.' :
+                               'Análise detalhada necessária para reversão.'}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Widget 4: Performance Mensal */}
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
+                <h2 className="text-2xl font-bold text-slate-700 mb-6 flex items-center gap-2">
+                  <Users className="w-7 h-7 text-slate-400" /> Performance Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                </h2>
+                <div className="space-y-4">
+                  {(() => {
+                    // Análise do melhor e pior mês - CORRIGIDO
+                    const mesesComFaturamento = faturamentoPorMes.filter(mes => mes.total > 0);
+                    
+                    if (mesesComFaturamento.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500">
+                          <p className="text-sm">Nenhum faturamento encontrado para {filtroAno}</p>
+                        </div>
+                      );
+                    }
+                    
+                    const melhorMes = mesesComFaturamento.reduce((max, mes) => 
+                      mes.total > max.total ? mes : max
+                    );
+                    
+                    const piorMes = mesesComFaturamento.reduce((min, mes) => 
+                      mes.total < min.total ? mes : min
+                    );
+
+                    const totalFaturamentoAno = faturamentoPorMes.reduce((acc, mes) => acc + mes.total, 0);
+                    const mediaFaturamento = totalFaturamentoAno / 12;
+                    const mediaProcedimentos = procedimentosParaGrafico.filter(p => p.valor_cobrado && p.valor_cobrado > 0).length / 12;
+                    const mesesAtivos = mesesComFaturamento.length;
+
+                    // Análises avançadas para insights mensais
+                    const diferenca = melhorMes.total - piorMes.total;
+                    const variabilidade = mesesComFaturamento.length > 1 ? (diferenca / piorMes.total) * 100 : 0;
+                    
+                    // Análise de consistência (coeficiente de variação)
+                    const valores = mesesComFaturamento.map(m => m.total);
+                    const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+                    const variancia = valores.reduce((acc, val) => acc + Math.pow(val - media, 2), 0) / valores.length;
+                    const desvioPadrao = Math.sqrt(variancia);
+                    const coeficienteVariacao = media > 0 ? (desvioPadrao / media) * 100 : 0;
+                    const consistencia = coeficienteVariacao < 25 ? 'Alta' : coeficienteVariacao < 50 ? 'Média' : 'Baixa';
+                    
+                    // Análise de tendência (primeira vs segunda metade)
+                    const metade = Math.floor(mesesComFaturamento.length / 2);
+                    const primeiraMetade = mesesComFaturamento.slice(0, metade);
+                    const segundaMetade = mesesComFaturamento.slice(metade);
+                    
+                    const mediaPrimeira = primeiraMetade.length > 0 ? primeiraMetade.reduce((acc, mes) => acc + mes.total, 0) / primeiraMetade.length : 0;
+                    const mediaSegunda = segundaMetade.length > 0 ? segundaMetade.reduce((acc, mes) => acc + mes.total, 0) / segundaMetade.length : 0;
+                    const tendencia = mesesComFaturamento.length >= 4 ? (
+                      mediaSegunda > mediaPrimeira ? 'Crescente' : 
+                      mediaSegunda < mediaPrimeira ? 'Decrescente' : 'Estável'
+                    ) : 'Insuficiente';
+                    
+                    // Análise de sazonalidade (trimestres)
+                    const trimestres = [
+                      { nome: '1º Tri', meses: [0,1,2], valor: 0 },
+                      { nome: '2º Tri', meses: [3,4,5], valor: 0 },
+                      { nome: '3º Tri', meses: [6,7,8], valor: 0 },
+                      { nome: '4º Tri', meses: [9,10,11], valor: 0 }
+                    ];
+                    
+                    trimestres.forEach(t => {
+                      t.valor = t.meses.reduce((acc, mes) => acc + (faturamentoPorMes[mes]?.total || 0), 0);
+                    });
+                    
+                    const melhorTrimestre = trimestres.reduce((max, tri) => tri.valor > max.valor ? tri : max);
+                    const participacaoMelhorTri = totalFaturamentoAno > 0 ? (melhorTrimestre.valor / totalFaturamentoAno) * 100 : 0;
+
+                    return (
+                      <>
+                        {/* Performance principal com insights */}
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-green-700">Melhor Mês</p>
+                              <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                {((melhorMes.total / totalFaturamentoAno) * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                            <p className="text-lg font-bold text-green-600">{melhorMes.mes}</p>
+                            <p className="text-sm text-green-600">{formatarValor(melhorMes.total)}</p>
+                          </div>
+                          
+                          <div className="p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-medium text-red-700">{mesesComFaturamento.length > 1 ? 'Pior Mês' : 'Único Mês'}</p>
+                              {mesesComFaturamento.length > 1 && (
+                                <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                                  -{variabilidade.toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-lg font-bold text-red-600">{piorMes.mes}</p>
+                            <p className="text-sm text-red-600">{formatarValor(piorMes.total)}</p>
+                          </div>
+                        </div>
+
+                        {/* Insights analíticos */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <div className={`p-3 rounded-xl border ${
+                            tendencia === 'Crescente' ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50' :
+                            tendencia === 'Decrescente' ? 'border-orange-200 bg-gradient-to-r from-orange-50 to-red-50' :
+                            tendencia === 'Estável' ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50' :
+                            'border-slate-200 bg-gradient-to-r from-slate-50 to-gray-50'
+                          }`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-slate-700">Tendência</p>
+                              <span className={`text-xs font-bold ${
+                                tendencia === 'Crescente' ? 'text-emerald-600' :
+                                tendencia === 'Decrescente' ? 'text-orange-600' :
+                                tendencia === 'Estável' ? 'text-blue-600' : 'text-slate-600'
+                              }`}>
+                                {tendencia}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600">
+                              {tendencia === 'Crescente' ? '2ª metade > 1ª metade' :
+                               tendencia === 'Decrescente' ? '2ª metade < 1ª metade' :
+                               tendencia === 'Estável' ? 'Performance equilibrada' :
+                               'Poucos dados para análise'}
+                            </p>
+                          </div>
+
+                          <div className={`p-3 rounded-xl border ${
+                            consistencia === 'Alta' ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50' :
+                            consistencia === 'Média' ? 'border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50' :
+                            'border-red-200 bg-gradient-to-r from-red-50 to-pink-50'
+                          }`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-slate-700">Consistência</p>
+                              <span className={`text-xs font-bold ${
+                                consistencia === 'Alta' ? 'text-blue-600' :
+                                consistencia === 'Média' ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {consistencia}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600">
+                              CV: {coeficienteVariacao.toFixed(1)}%
+                            </p>
+                          </div>
+
+                          <div className="p-3 rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-slate-700">Melhor Período</p>
+                              <span className="text-xs font-bold text-purple-600">
+                                {participacaoMelhorTri.toFixed(1)}%
+                              </span>
+                            </div>
+                            <p className="text-xs text-purple-600 font-semibold">
+                              {melhorTrimestre.nome} • {formatarValor(melhorTrimestre.valor)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Métricas consolidadas */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-sm font-medium text-slate-700">Faturamento Médio/Mês</span>
+                            <div className="text-right">
+                              <span className="font-bold text-slate-900 block">{formatarValor(mediaFaturamento)}</span>
+                              <span className="text-xs text-slate-500">
+                                {((mediaFaturamento / totalFaturamentoAno) * 100 * 12).toFixed(1)}% ideal
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-sm font-medium text-slate-700">Procedimentos Médio/Mês</span>
+                            <div className="text-right">
+                              <span className="font-bold text-slate-900 block">{mediaProcedimentos.toFixed(1)}</span>
+                              <span className="text-xs text-slate-500">
+                                Ticket médio: {formatarValor(mediaProcedimentos > 0 ? mediaFaturamento / mediaProcedimentos : 0)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                            <span className="text-sm font-medium text-slate-700">Meses Ativos</span>
+                            <div className="text-right">
+                              <span className="font-bold text-slate-900 block">{mesesAtivos}/12</span>
+                              <span className="text-xs text-slate-500">
+                                {((mesesAtivos / 12) * 100).toFixed(0)}% do ano
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                            <span className="text-sm font-medium text-emerald-700">Total do Ano</span>
+                            <div className="text-right">
+                              <span className="font-bold text-emerald-600 block">{formatarValor(totalFaturamentoAno)}</span>
+                              <span className="text-xs text-emerald-500">
+                                {mesesAtivos > 0 ? `${(totalFaturamentoAno / mesesAtivos * 12 / totalFaturamentoAno * 100).toFixed(0)}% potencial anualizado` : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          </>
         )}
         {/* Tabela de Procedimentos: só aparece na aba Smart */}
         {abaSelecionada === 'select' && (

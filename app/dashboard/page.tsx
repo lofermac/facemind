@@ -469,22 +469,25 @@ export default function DashboardPage() {
       setProximosAtendimentos([]);
       return;
     }
-    // Buscar nomes dos pacientes
+    // Buscar nomes dos pacientes (excluir inativos)
     const { data: pacientes } = await supabase
       .from('pacientes')
-      .select('id, nome');
+      .select('id, nome, status')
+      .neq('status', 'Inativo');
     const pacientesMap: Record<string, string> = {};
     if (Array.isArray(pacientes)) {
       pacientes.forEach(p => { pacientesMap[p.id] = p.nome; });
     }
-    // Montar lista final
-    const atendimentos: ProximoAtendimento[] = ags.map(a => ({
-      id: a.id,
-      paciente: pacientesMap[a.paciente_id] || 'Paciente',
-      data: a.data,
-      hora: a.hora,
-      rotulo: a.rotulo || '',
-    }));
+    // Montar lista final - filtrar agendamentos de pacientes inativos
+    const atendimentos: ProximoAtendimento[] = ags
+      .filter(a => pacientesMap[a.paciente_id]) // Só incluir se paciente não for inativo
+      .map(a => ({
+        id: a.id,
+        paciente: pacientesMap[a.paciente_id],
+        data: a.data,
+        hora: a.hora,
+        rotulo: a.rotulo || '',
+      }));
     setProximosAtendimentos(atendimentos);
   }, []);
 
@@ -509,9 +512,11 @@ export default function DashboardPage() {
         });
       }
       // Buscar pacientes e procedimentos realizados + agendamentos
+      // FILTRAR pacientes inativos do widget de oportunidades
       const { data: pacientes } = await supabase
         .from('pacientes')
-        .select('id, nome, procedimentos_realizados(id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento )), agendamentos(data, rotulo)');
+        .select('id, nome, status, procedimentos_realizados(id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento )), agendamentos(data, rotulo)')
+        .neq('status', 'Inativo');
       const oportunidades: ProcedimentoOportunidade[] = [];
       if (pacientes) {
         pacientes.forEach(paciente => {
@@ -583,9 +588,11 @@ export default function DashboardPage() {
       });
 
       // Buscar pacientes e procedimentos realizados (para os outros widgets)
+      // FILTRAR pacientes inativos dos widgets de renovação e churn
       const { data: pacientes } = await supabase
         .from('pacientes')
-        .select('id, nome, procedimentos_realizados(id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento, categoria_id, categorias_procedimentos ( nome ) )), agendamentos(data, rotulo)');
+        .select('id, nome, status, procedimentos_realizados(id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento, categoria_id, categorias_procedimentos ( nome ) )), agendamentos(data, rotulo)')
+        .neq('status', 'Inativo');
       // --- Renovações Atrasadas ---
       const renovacoes: ProcedimentoRenovacao[] = [];
       // --- Carteira de Procedimentos Ativos ---

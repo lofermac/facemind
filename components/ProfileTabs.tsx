@@ -122,40 +122,94 @@ export default function ProfileTabs({ paciente }: ProfileTabsProps) {
             }, null as string | null)
           : null;
         function calcularIndiceFidelidade() {
-          const grupos: Record<string, typeof paciente.procedimentos_realizados> = {};
-          paciente.procedimentos_realizados.forEach(proc => {
-            const id = proc.procedimento_tabela_valores_id ? String((proc.procedimento_tabela_valores_id as any).id || (proc.procedimento_tabela_valores_id as any)._id || (proc.procedimento_tabela_valores_id as any).nome_procedimento || '') : '';
-            if (!id) return;
-            grupos[id] = grupos[id] || [];
-            grupos[id].push(proc);
+          const hoje = new Date();
+          const procedimentos = paciente.procedimentos_realizados.filter(p => p.data_procedimento);
+          
+          if (procedimentos.length === 0) return null;
+
+          // 1. REGULARIDADE DE PROCEDIMENTOS (40%)
+          let scoreRegularidade = 0;
+          const grupos: Record<string, typeof procedimentos> = {};
+          
+          // Agrupar por tipo de procedimento
+          procedimentos.forEach(proc => {
+            const nome = proc.procedimento_tabela_valores_id?.nome_procedimento || 'Outros';
+            grupos[nome] = grupos[nome] || [];
+            grupos[nome].push(proc);
           });
-          let pares: { anterior: typeof paciente.procedimentos_realizados[0], atual: typeof paciente.procedimentos_realizados[0] }[] = [];
+
+          // Calcular regularidade para cada tipo
+          let totalRenovacoes = 0;
+          let renovacoesRegulares = 0;
+          
           Object.values(grupos).forEach(lista => {
             if (lista.length < 2) return;
-            lista.sort((a, b) => {
-              if (!a.data_procedimento || !b.data_procedimento) return 0;
-              return new Date(a.data_procedimento).getTime() - new Date(b.data_procedimento).getTime();
-            });
+            
+            lista.sort((a, b) => new Date(a.data_procedimento!).getTime() - new Date(b.data_procedimento!).getTime());
+            
             for (let i = 1; i < lista.length; i++) {
-              pares.push({ anterior: lista[i - 1], atual: lista[i] });
+              const anterior = lista[i - 1];
+              const atual = lista[i];
+              const duracao = anterior.procedimento_tabela_valores_id?.duracao_efeito_meses || 6;
+              
+              const dataEsperada = new Date(anterior.data_procedimento!);
+              dataEsperada.setMonth(dataEsperada.getMonth() + duracao);
+              
+              const dataReal = new Date(atual.data_procedimento!);
+              const diferenca = Math.abs((dataReal.getTime() - dataEsperada.getTime()) / (1000 * 60 * 60 * 24));
+              
+              totalRenovacoes++;
+              // Considera regular se fez dentro de ±30 dias do período ideal
+              if (diferenca <= 30) renovacoesRegulares++;
             }
           });
-          if (pares.length === 0) return null;
-          const diasAntecedencia: number[] = pares.map(({ anterior, atual }) => {
-            if (!anterior.data_procedimento || !atual.data_procedimento) return 0;
-            const duracao = anterior.procedimento_tabela_valores_id?.duracao_efeito_meses || 0;
-            if (!duracao) return 0;
-            const dataVencimentoTeorico = new Date(anterior.data_procedimento);
-            dataVencimentoTeorico.setMonth(dataVencimentoTeorico.getMonth() + duracao);
-            const dataAtual = new Date(atual.data_procedimento);
-            const diffDias = Math.floor((dataVencimentoTeorico.getTime() - dataAtual.getTime()) / (1000 * 60 * 60 * 24));
-            return diffDias;
-          });
-          const mediaDias = diasAntecedencia.reduce((a, b) => a + b, 0) / diasAntecedencia.length;
-          let indice = ((mediaDias + 60) / (30 + 60)) * 100;
-          if (indice < 0) indice = 0;
-          if (indice > 100) indice = 100;
-          return indice;
+          
+          if (totalRenovacoes > 0) {
+            scoreRegularidade = (renovacoesRegulares / totalRenovacoes) * 40;
+          }
+
+          // 2. LONGEVIDADE COMO PACIENTE (25%)
+          let scoreLongevidade = 0;
+          const primeiroProcedimento = procedimentos
+            .sort((a, b) => new Date(a.data_procedimento!).getTime() - new Date(b.data_procedimento!).getTime())[0];
+          
+          if (primeiroProcedimento?.data_procedimento) {
+            const inicioRelacionamento = new Date(primeiroProcedimento.data_procedimento);
+            const mesesComoCliente = (hoje.getTime() - inicioRelacionamento.getTime()) / (1000 * 60 * 60 * 24 * 30);
+            
+            // Pontuação progressiva: 6 meses = 10%, 12 meses = 15%, 24+ meses = 25%
+            if (mesesComoCliente >= 24) scoreLongevidade = 25;
+            else if (mesesComoCliente >= 12) scoreLongevidade = 15;
+            else if (mesesComoCliente >= 6) scoreLongevidade = 10;
+            else scoreLongevidade = (mesesComoCliente / 6) * 10;
+          }
+
+          // 3. DIVERSIFICAÇÃO DE TRATAMENTOS (20%)
+          const tiposUnicos = new Set(procedimentos.map(p => 
+            p.procedimento_tabela_valores_id?.nome_procedimento || 'Outros'
+          ));
+          let scoreDiversificacao = 0;
+          
+          if (tiposUnicos.size === 1) scoreDiversificacao = 5;  // Só um tipo
+          else if (tiposUnicos.size === 2) scoreDiversificacao = 12; // Dois tipos
+          else if (tiposUnicos.size >= 3) scoreDiversificacao = 20;  // Três ou mais tipos
+
+          // 4. VALOR INVESTIDO RELATIVO (15%)
+          let scoreInvestimento = 0;
+          const valorTotal = procedimentos.reduce((sum, p) => sum + (p.valor_cobrado || 0), 0);
+          const valorMedioPorProcedimento = valorTotal / procedimentos.length;
+          
+          // Pontuação baseada no valor médio por procedimento
+          if (valorMedioPorProcedimento >= 2000) scoreInvestimento = 15;
+          else if (valorMedioPorProcedimento >= 1000) scoreInvestimento = 12;
+          else if (valorMedioPorProcedimento >= 500) scoreInvestimento = 8;
+          else scoreInvestimento = 5;
+
+          // SCORE FINAL
+          const indiceTotal = scoreRegularidade + scoreLongevidade + scoreDiversificacao + scoreInvestimento;
+          
+          // Garantir que o índice fique entre 0 e 100
+          return Math.min(100, Math.max(0, Math.round(indiceTotal)));
         }
         const indiceFidelidade = calcularIndiceFidelidade();
         return (
