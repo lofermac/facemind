@@ -55,8 +55,21 @@ export default function RootLayout({
     }
   }, [isLoading, session, pathname]);
 
+  // Definir título da página dinamicamente
+  useEffect(() => {
+    document.title = 'FaceMind';
+  }, []);
+
   return (
     <html lang="pt-BR">
+      <head>
+        <title>FaceMind</title>
+        <meta name="description" content="Sistema de gestão para clínicas de estética" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       {/* ✨ GARANTA QUE ESTA CLASSE ESTÁ AQUI E É CLARA ✨ */}
       <body className="bg-slate-100 antialiased"> 
         {!isLoginPage && !isLoading && pathname !== '/' ? (

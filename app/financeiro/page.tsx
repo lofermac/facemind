@@ -391,7 +391,7 @@ export default function FinanceiroPage() {
                           <div className="flex-1">
                             <div className="flex justify-between items-center mb-1">
                               <span className="font-semibold text-slate-700 text-sm" title={nome}>
-                                {nome.length > 25 ? `${nome.substring(0, 25)}...` : nome}
+                                {nome}
                               </span>
                               <span className="font-bold text-purple-600">{formatarValor(valor)}</span>
                             </div>
@@ -570,7 +570,7 @@ export default function FinanceiroPage() {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <p className="text-sm font-medium text-emerald-700 mb-3">Crescimento de Faturamento</p>
-                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-emerald-300/60 shadow-sm w-72">
+                                  <div className="bg-white/80 rounded-xl px-4 py-3 border border-emerald-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="text-sm font-bold text-emerald-900">{filtroAno}</span>
                                       <span className="text-sm font-semibold text-emerald-800">
@@ -603,7 +603,7 @@ export default function FinanceiroPage() {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <p className="text-sm font-medium text-blue-700 mb-3">Crescimento de Volume</p>
-                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-blue-300/60 shadow-sm w-72">
+                                  <div className="bg-white/80 rounded-xl px-4 py-3 border border-blue-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="text-sm font-bold text-blue-900">{filtroAno}</span>
                                       <span className="text-sm font-semibold text-blue-800">
@@ -636,7 +636,7 @@ export default function FinanceiroPage() {
                               <div className="flex items-center justify-between mb-2">
                                 <div>
                                   <p className="text-sm font-medium text-purple-700 mb-3">Crescimento de Ticket Médio</p>
-                                  <div className="bg-white/80 rounded-xl px-5 py-3 border border-purple-300/60 shadow-sm w-72">
+                                  <div className="bg-white/80 rounded-xl px-4 py-3 border border-purple-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
                                       <span className="text-sm font-bold text-purple-900">{filtroAno}</span>
                                       <span className="text-sm font-semibold text-purple-800">
