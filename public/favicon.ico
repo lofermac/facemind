@@ -1,7 +1,0 @@
-<!-- Este arquivo será substituído por um ICO real, mas por enquanto vou criar um placeholder -->
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="8" cy="8" r="8" fill="#3B82F6"/>
-  <path d="M8 4C6.5 4 5 5.5 5 7C5 8 5.5 9 6.5 9.5C6 10 5.5 11 5.5 12C5.5 13 6.5 14 7.5 14H8.5C9.5 14 10.5 13 10.5 12C10.5 11 10 10 9.5 9.5C10.5 9 11 8 11 7C11 5.5 9.5 4 8 4Z" fill="white"/>
-  <path d="M7 6C7.5 6 8 6.5 8 7C8 7.5 7.5 8 7 8C6.5 8 6 7.5 6 7C6 6.5 6.5 6 7 6Z" fill="#3B82F6"/>
-  <path d="M9 6C9.5 6 10 6.5 10 7C10 7.5 9.5 8 9 8C8.5 8 8 7.5 8 7C8 6.5 8.5 6 9 6Z" fill="#3B82F6"/>
-</svg>

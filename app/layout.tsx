@@ -60,15 +60,24 @@ export default function RootLayout({
     document.title = 'FaceMind';
   }, []);
 
+  // Forçar atualização do favicon
+  useEffect(() => {
+    const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/svg+xml';
+    link.rel = 'icon';
+    link.href = '/favicon.svg?v=2';
+    document.getElementsByTagName('head')[0].appendChild(link);
+  }, []);
+
   return (
     <html lang="pt-BR">
       <head>
         <title>FaceMind</title>
         <meta name="description" content="Sistema de gestão para clínicas de estética" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/favicon.svg" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.svg?v=2" />
+        <link rel="manifest" href="/manifest.json?v=2" />
+        <meta name="theme-color" content="#3B82F6" />
       </head>
       {/* ✨ GARANTA QUE ESTA CLASSE ESTÁ AQUI E É CLARA ✨ */}
       <body className="bg-slate-100 antialiased"> 
