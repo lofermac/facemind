@@ -136,7 +136,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
         <form className="space-y-4" onSubmit={async e => {
           e.preventDefault();
           if (!rotulo) {
-            setErroRotulo('Selecione Procedimento ou Retorno.');
+            setErroRotulo('Selecione Procedimento, Retorno ou Pessoal.');
             return;
           }
           setErroRotulo('');
@@ -289,6 +289,20 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
               onClick={() => { setRotulo('Retorno'); setErroRotulo(''); }}
             >
               Retorno
+            </button>
+            <button
+              type="button"
+              className={`flex-1 py-3 rounded-lg border text-base font-medium transition-all
+                ${rotulo === 'Pessoal' ? 'bg-orange-500 text-white border-orange-500 shadow' : 'bg-white text-slate-700 border-slate-200 hover:bg-orange-50'}`}
+              onClick={() => {
+                setRotulo('Pessoal');
+                setErroRotulo('');
+                // Seleciona automaticamente Poliana Lara Braun se existir
+                const poliana = pacientes.find(p => p.nome === 'Poliana Lara Braun');
+                if (poliana) setPacienteSelecionado(poliana.id);
+              }}
+            >
+              Pessoal
             </button>
           </div>
           {erroRotulo && <div className="text-red-500 text-sm mb-2">{erroRotulo}</div>}
@@ -472,8 +486,10 @@ function AgendaPageContent() {
                               .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''))
                               .map((a, index) => {
                                 const isProcedimento = a.rotulo === 'Procedimento';
-                                const bgColor = isProcedimento ? 'bg-blue-600' : 'bg-green-600';
-                                const hoverColor = isProcedimento ? 'hover:bg-blue-700' : 'hover:bg-green-700';
+                                const isRetorno = a.rotulo === 'Retorno';
+                                const isPessoal = a.rotulo === 'Pessoal';
+                                const bgColor = isProcedimento ? 'bg-blue-600' : isRetorno ? 'bg-green-600' : isPessoal ? 'bg-orange-500' : 'bg-slate-400';
+                                const hoverColor = isProcedimento ? 'hover:bg-blue-700' : isRetorno ? 'hover:bg-green-700' : isPessoal ? 'hover:bg-orange-600' : '';
                                 
                                 return (
                                   <div 
@@ -534,8 +550,10 @@ function AgendaPageContent() {
                           const nomeCompleto = pacientesMap[a.paciente_id] || '';
                           const primeiroNome = nomeCompleto.split(' ')[0] || nomeCompleto;
                           const isProcedimento = a.rotulo === 'Procedimento';
-                          const bgColor = isProcedimento ? 'bg-blue-100' : 'bg-green-100';
-                          const textColor = isProcedimento ? 'text-blue-800' : 'text-green-800';
+                          const isRetorno = a.rotulo === 'Retorno';
+                          const isPessoal = a.rotulo === 'Pessoal';
+                          const bgColor = isProcedimento ? 'bg-blue-100' : isRetorno ? 'bg-green-100' : isPessoal ? 'bg-orange-100' : 'bg-slate-100';
+                          const textColor = isProcedimento ? 'text-blue-800' : isRetorno ? 'text-green-800' : isPessoal ? 'text-orange-800' : 'text-slate-800';
                           
                           return (
                             <div

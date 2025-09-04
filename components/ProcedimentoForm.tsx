@@ -331,16 +331,17 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       fotosDepoisFinal = urlsDepois.length > 0 ? urlsDepois : null;
     }
 
-    // No handleSubmit, ajustar parseFloat para aceitar vírgula
+    // No handleSubmit, ajustar parseFloat para aceitar vírgula e remover separador de milhar
+    const parseMonetario = (valor: string) => parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0;
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
       procedimento_tabela_valores_id: procedimentoTVSelId,
       data_procedimento: dataFormatadaParaSalvar,
-      valor_cobrado: parseFloat(valorCobrado.replace(',', '.')) || 0,
-      custo_produto: parseFloat(custoProduto.replace(',', '.')) || 0,
-      custo_insumos: parseFloat(custoInsumos.replace(',', '.')) || 0,
-      custo_sala: parseFloat(custoSala.replace(',', '.')) || 0,
+      valor_cobrado: parseMonetario(valorCobrado),
+      custo_produto: parseMonetario(custoProduto),
+      custo_insumos: parseMonetario(custoInsumos),
+      custo_sala: parseMonetario(custoSala),
       observacoes: observacoes.trim() || null,
       fotos_antes_urls: fotosAntesFinal,
       fotos_depois_urls: fotosDepoisFinal,
@@ -382,7 +383,13 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       isEditMode, procedimentoInicial, onSave
   ]);
 
-  const lucroCalculado = (parseFloat(valorCobrado.replace(',', '.')) || 0) - ((parseFloat(custoProduto.replace(',', '.')) || 0) + (parseFloat(custoInsumos.replace(',', '.')) || 0) + (parseFloat(custoSala.replace(',', '.')) || 0));
+  const lucroCalculado = (
+    parseFloat(valorCobrado.replace(/\./g, '').replace(',', '.')) || 0
+  ) - (
+    (parseFloat(custoProduto.replace(/\./g, '').replace(',', '.')) || 0) +
+    (parseFloat(custoInsumos.replace(/\./g, '').replace(',', '.')) || 0) +
+    (parseFloat(custoSala.replace(/\./g, '').replace(',', '.')) || 0)
+  );
 
   useEffect(() => {
     if (arquivosAntes) {
