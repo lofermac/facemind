@@ -66,7 +66,9 @@ export default function TabelaDeProcedimentos({ procedimentos }: TabelaDeProcedi
       const mapaDuracao = new Map<string, number>();
       (duracoesProcedimentos || []).forEach(p => {
         if (p.nome_procedimento && p.duracao_efeito_meses) {
-          mapaDuracao.set(p.nome_procedimento.toLowerCase(), p.duracao_efeito_meses);
+          // Usar normalização consistente (trim + toLowerCase)
+          const nomeNormalizado = p.nome_procedimento.toLowerCase().trim();
+          mapaDuracao.set(nomeNormalizado, p.duracao_efeito_meses);
         }
       });
       setMapaDuracaoProcedimentos(mapaDuracao);
@@ -163,8 +165,8 @@ export default function TabelaDeProcedimentos({ procedimentos }: TabelaDeProcedi
               const nome = proc.procedimento_tabela_valores_id?.nome_procedimento || 'N/A';
               const duracaoOriginal = proc.procedimento_tabela_valores_id?.duracao_efeito_meses;
               
-              // Buscar duração da tabela de valores (igual à página /procedimentos)
-              const chaveLookup = String(nome).toLowerCase();
+              // Buscar duração da tabela de valores com normalização consistente
+              const chaveLookup = String(nome).toLowerCase().trim();
               const duracaoTabela = mapaDuracaoProcedimentos.get(chaveLookup);
               const duracaoFinal = duracaoTabela || duracaoOriginal;
               

@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { hasFutureAppointmentLike, latestByProcedureName } from '@/utils/statusRules';
+import { hasFutureAppointmentLike, latestByProcedureName, derivePatientStatusFromProcedures, calcProcedureStatus } from '@/utils/statusRules';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ChartRevenueArea from '@/components/ChartRevenueArea';
 import RadarPatientsStatus from '@/components/RadarPatientsStatus';
@@ -219,12 +219,14 @@ export default function DashboardPage() {
         throw errorFinanceiro;
       }
 
-      // Processar mapa de durações
+      // Processar mapa de durações com normalização consistente
       const mapaDuracao = new Map<string, number>();
       if (tiposProcedimentoData) {
         tiposProcedimentoData.forEach(tipo => {
           if (tipo.nome_procedimento && typeof tipo.duracao_efeito_meses === 'number') {
-            mapaDuracao.set(String(tipo.nome_procedimento).toLowerCase(), tipo.duracao_efeito_meses);
+            // Usar normalização consistente (trim + toLowerCase)
+            const nomeNormalizado = String(tipo.nome_procedimento).toLowerCase().trim();
+            mapaDuracao.set(nomeNormalizado, tipo.duracao_efeito_meses);
           }
         });
       }
@@ -238,35 +240,43 @@ export default function DashboardPage() {
       let pacientesAContatar = new Set<string>();
       let pacientesVencidos = new Set<string>();
       let pacientesInativosBanco = 0;
+
       if (pacientesBase) {
         pacientesBase.forEach((paciente: any) => {
           if (paciente.status === 'Inativo') {
             pacientesInativosBanco++;
             return;
           }
-          const procsRealizados = paciente.procedimentos_realizados || [];
-          let temAtivo = false;
-          let temAContatar = false;
-          let temVencido = false;
-          procsRealizados.forEach((proc: any) => {
+          
+          // Preparar dados dos procedimentos para o cálculo de status
+          const procsParaStatus = (paciente.procedimentos_realizados || []).map((proc: any) => {
             const nomeProc = proc.procedimento_tabela_valores_id?.nome_procedimento;
-            if (!proc.data_procedimento || !nomeProc) return;
-            const chaveLookup = String(nomeProc).toLowerCase();
+            // Usar normalização consistente (trim + toLowerCase)
+            const chaveLookup = String(nomeProc || '').toLowerCase().trim();
             const duracaoMeses = mapaDuracao.get(chaveLookup);
-            if (duracaoMeses !== undefined && duracaoMeses > 0) {
-              const dataRealizacao = new Date(proc.data_procedimento);
-              dataRealizacao.setUTCHours(0, 0, 0, 0);
-              const dataVencimento = new Date(dataRealizacao.getTime());
-              dataVencimento.setUTCMonth(dataVencimento.getUTCMonth() + duracaoMeses);
-              const diffDiasParaVencer = Math.floor((dataVencimento.getTime() - hojeUtc.getTime()) / (1000 * 60 * 60 * 24));
-              if (diffDiasParaVencer > 30) temAtivo = true;
-              else if (diffDiasParaVencer >= 0 && diffDiasParaVencer <= 30) temAContatar = true;
-              else if (diffDiasParaVencer < 0) temVencido = true;
-            }
+            
+            return {
+              data_procedimento: proc.data_procedimento,
+              duracao_efeito_meses: duracaoMeses !== undefined ? duracaoMeses : null
+            };
           });
-          if (temAtivo) pacientesComProcedimentoAtivo.add(paciente.id);
-          if (temAContatar) pacientesAContatar.add(paciente.id);
-          if (!temAtivo && !temAContatar && temVencido) pacientesVencidos.add(paciente.id);
+          
+          // Usar a mesma função que a página /pacientes usa
+          const statusCalculado = derivePatientStatusFromProcedures({
+            procedimentos: procsParaStatus,
+            created_at: paciente.created_at,
+            paciente_status_banco: paciente.status,
+            today: hojeUtc
+          });
+          
+          // Contar conforme o status calculado
+          if (statusCalculado === 'Ativo') {
+            pacientesComProcedimentoAtivo.add(paciente.id);
+          } else if (statusCalculado === 'Contato') {
+            pacientesAContatar.add(paciente.id);
+          } else if (statusCalculado === 'Vencido') {
+            pacientesVencidos.add(paciente.id);
+          }
         });
       }
 
@@ -526,12 +536,9 @@ export default function DashboardPage() {
             const chave = String(nomeProc).toLowerCase();
             const duracao = mapaDuracao.get(chave);
             if (!duracao) return;
-            const dataRealizacao = new Date(proc.data_procedimento);
-            dataRealizacao.setHours(0, 0, 0, 0);
-            const dataVencimento = new Date(dataRealizacao.getTime());
-            dataVencimento.setMonth(dataVencimento.getMonth() + duracao);
-            const diffDias = Math.floor((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDias >= 0 && diffDias <= 30) {
+            const { status, dias } = calcProcedureStatus(proc.data_procedimento, duracao, hoje);
+            const diffDias = dias;
+            if (diffDias !== null && diffDias >= 0 && diffDias <= 30) {
               // Não verificar mais agendamento futuro - mostrar todos os contatos imediatos
               oportunidades.push({
                 id: `${paciente.id}-${(proc as any).data_procedimento}-${(proc as any).id}-${((proc as any).procedimento_tabela_valores_id?.nome_procedimento || '')}`,
@@ -575,10 +582,10 @@ export default function DashboardPage() {
         const dataProc = rec?.data_procedimento;
         const dur = rec?.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined;
         if (!dataProc || !dur || dur <= 0) return;
-        const realizacao = new Date(dataProc); realizacao.setHours(0,0,0,0);
-        const venc = new Date(realizacao.getTime()); venc.setMonth(venc.getMonth() + dur);
-        const diffDias = Math.floor((venc.getTime() - hoje.getTime()) / (1000*60*60*24));
-        if (diffDias >= 0) {
+        
+        // Usar a mesma função que a página /procedimentos usa
+        const { status } = calcProcedureStatus(dataProc, dur, hoje);
+        if (status === 'ativo') {
           const cat = rec?.categoria_nome
             || rec?.procedimento_tabela_valores_id?.categorias_procedimentos?.nome
             || rec?.procedimento_tabela_valores_id?.nome_procedimento
@@ -634,16 +641,14 @@ export default function DashboardPage() {
                 const diffDias = Math.floor((dataVencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
                 
                 // --- Renovações Atrasadas ---
-                if (diffDias < 0) {
-                  // Limite: apenas vencidos nos últimos 180 dias
-                  if (Math.abs(diffDias) <= 180) {
-                    renovacoes.push({
-                      id: `${paciente.id}-${proc.data_procedimento}-${proc.id}-${nomeProc}`,
-                      nome: nomeProc,
-                      paciente: paciente.nome,
-                      diasVencido: Math.abs(diffDias),
-                    });
-                  }
+                const { status, dias } = calcProcedureStatus(dataRealizacao.toISOString().slice(0,10), duracao, hoje);
+                if (status === 'vencido' && dias !== null && dias <= 180) {
+                  renovacoes.push({
+                    id: `${paciente.id}-${proc.data_procedimento}-${proc.id}-${nomeProc}`,
+                    nome: nomeProc,
+                    paciente: paciente.nome,
+                    diasVencido: dias,
+                  });
                 }
               }
             }
@@ -661,10 +666,11 @@ export default function DashboardPage() {
               ultimoProc = { data: dataRealizacao, nome: nomeProc };
             }
           });
-          // Alerta de Churn: se último procedimento > 6 meses atrás (sem considerar agenda)
+          // Alerta de Churn: se último procedimento > 6 meses atrás (180 dias)
           if (ultimoProc) {
-            const diffMeses = (hoje.getFullYear() - (ultimoProc as any).data.getFullYear()) * 12 + (hoje.getMonth() - (ultimoProc as any).data.getMonth());
-            if (diffMeses >= 6) {
+            const diffDias = Math.floor((hoje.getTime() - (ultimoProc as any).data.getTime()) / (1000 * 60 * 60 * 24));
+            const diffMeses = Math.floor(diffDias / 30); // Aproximação: 30 dias = 1 mês
+            if (diffDias >= 180) { // 6 meses = 180 dias (consistente com CHURN_MONTHS * 30)
               churn.push({
                 id: paciente.id,
                 nome: paciente.nome,

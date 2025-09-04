@@ -52,7 +52,7 @@ const opcoesStatusFiltro = [
 ];
 
 // --- Funções Utilitárias de Formatação ---
-const formatarData = (dataISO: string | null | undefined): string => {
+const formatarData = (dataISO: string | null | undefined, curto = false): string => {
   if (!dataISO) return 'N/A';
   try {
     const dataObj = new Date(dataISO);
@@ -60,7 +60,9 @@ const formatarData = (dataISO: string | null | undefined): string => {
     const dia = String(dataObj.getUTCDate()).padStart(2, '0');
     const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0');
     const ano = dataObj.getUTCFullYear();
-    return `${dia}/${mes}/${ano}`;
+    return curto
+      ? `${dia}/${mes}/${String(ano).slice(-2)}`
+      : `${dia}/${mes}/${ano}`;
   } catch (e: any) { return 'Data inválida'; }
 };
 
@@ -117,6 +119,9 @@ function GerenciarPacientesPageContent() {
   const fetchDadosParaStatus = useCallback(async () => {
     setLoading(true);
     try {
+      // Usar data UTC consistente com dashboard
+      const hojeUtc = new Date();
+      hojeUtc.setUTCHours(0, 0, 0, 0);
       const { data: tiposProcedimentoData, error: errorTipos } = await supabase
         .from('procedimentos_tabela_valores') 
         .select('nome_procedimento, duracao_efeito_meses');
@@ -162,6 +167,7 @@ function GerenciarPacientesPageContent() {
           procedimentos: procs,
           created_at: paciente.created_at,
           paciente_status_banco: paciente.status,
+          today: hojeUtc, // Usar data UTC consistente
         });
 
         return {
@@ -353,7 +359,20 @@ function GerenciarPacientesPageContent() {
                 </svg>
               </a>
             </div>
-            <p className="text-sm text-slate-600 mb-1"><strong>Data de Criação:</strong> {new Date(paciente.created_at).toLocaleDateString('pt-BR')}</p>
+            {/* Primeiro Atendimento */}
+            <p className="text-sm text-slate-600 mb-1"><strong>Primeiro Atendimento:</strong> {(() => {
+              const procs = paciente.procedimentos_realizados || [];
+              if (procs.length === 0) return 'N/A';
+              // Encontrar a menor data_procedimento válida
+              const datas = procs
+                .map(p => p.data_procedimento)
+                .filter(Boolean)
+                .map(d => new Date(d!))
+                .filter(d => !isNaN(d.getTime()));
+              if (datas.length === 0) return 'N/A';
+              const primeira = new Date(Math.min(...datas.map(d => d.getTime())));
+              return formatarData(primeira.toISOString(), true);
+            })()}</p>
           </div>
           );
         })}

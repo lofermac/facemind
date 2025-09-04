@@ -28,9 +28,9 @@ export default function WidgetRadarOportunidades({ procedimentos }: WidgetRadarO
   };
 
   return (
-    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200">
+    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200 h-[370px]">
       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-2">
-        <BellIcon className="w-6 h-6 text-blue-500" />
+        <BellIcon className="w-6 h-6 text-yellow-400" />
         Contato Imediato
       </h3>
       {procedimentos.length === 0 ? (
@@ -39,7 +39,7 @@ export default function WidgetRadarOportunidades({ procedimentos }: WidgetRadarO
           <div className="mt-2 text-sm text-slate-500 italic">Sem contatos imediatos.</div>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-slate-100 overflow-y-auto pr-1 max-h-[260px]">
           {procedimentos.map((item) => (
             <li 
               key={item.id} 
@@ -55,7 +55,7 @@ export default function WidgetRadarOportunidades({ procedimentos }: WidgetRadarO
                 <span className="font-semibold text-slate-900">{item.nome}</span>
                 <span className="text-slate-500 ml-2">- {item.paciente}</span>
               </div>
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 group-hover:bg-blue-200 transition">
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 group-hover:bg-yellow-200 transition">
                 Vence em {item.diasParaVencer} dias
               </span>
             </li>

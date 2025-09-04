@@ -22,7 +22,7 @@ export default function WidgetRadarCarteiraAtivos({ carteira }: WidgetRadarCarte
   };
 
   return (
-    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200">
+    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200 h-[370px]">
       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-2">
         <ClipboardDocumentListIcon className="w-6 h-6 text-green-500" />
         Carteira de Procedimentos
@@ -33,7 +33,7 @@ export default function WidgetRadarCarteiraAtivos({ carteira }: WidgetRadarCarte
           <div className="mt-2 text-sm text-slate-500 italic">Sem itens na carteira.</div>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100 max-h-48 overflow-y-auto pr-1">
+        <ul className="divide-y divide-slate-100 max-h-[260px] overflow-y-auto pr-1">
           {carteira.map((item) => (
             <li 
               key={item.nome} 

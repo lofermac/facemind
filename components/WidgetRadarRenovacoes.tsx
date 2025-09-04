@@ -28,7 +28,7 @@ export default function WidgetRadarRenovacoes({ procedimentos }: WidgetRadarReno
   };
 
   return (
-    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200">
+    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200 h-[370px]">
       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-2">
         <ExclamationCircleIcon className="w-6 h-6 text-red-500" />
         Renovações Atrasadas
@@ -39,8 +39,8 @@ export default function WidgetRadarRenovacoes({ procedimentos }: WidgetRadarReno
           <div className="mt-2 text-sm text-slate-500 italic">Sem renovações em atraso.</div>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100">
-          {procedimentos.map((item) => (
+        <ul className="divide-y divide-slate-100 overflow-y-auto pr-1 max-h-[260px]">
+          {[...procedimentos].sort((a, b) => a.diasVencido - b.diasVencido).map((item) => (
             <li 
               key={item.id} 
               className="py-3 flex items-center justify-between group cursor-pointer hover:bg-slate-50 rounded-md px-2 transition-colors"

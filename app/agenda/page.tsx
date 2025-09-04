@@ -62,10 +62,10 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
       const [hh, mm] = hora.split(':');
       return parseInt(hh, 10) * 60 + parseInt(mm, 10);
     }
-    return 7 * 60; // 07:00
+    return 6 * 60; // 06:00
   });
   function clampHora(mins: number) {
-    return Math.min(Math.max(mins, 7 * 60), 20 * 60); // 07:00 a 20:00
+    return Math.min(Math.max(mins, 6 * 60), 22 * 60); // 06:00 a 22:00
   }
   function formatHora(mins: number) {
     const h = Math.floor(mins / 60);
@@ -105,7 +105,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
           const [hh, mm] = hora.split(':');
           setHoraMinutos(parseInt(hh, 10) * 60 + parseInt(mm, 10));
         } else {
-          setHoraMinutos(7 * 60);
+          setHoraMinutos(6 * 60);
         }
       }
     }
@@ -178,7 +178,19 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
           }
         }}>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Paciente<span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+              <span>Paciente<span className="text-red-500">*</span></span>
+              {!agendamentoEditavel && (
+                <button
+                  type="button"
+                  onClick={() => window.location.href = '/pacientes/novo'}
+                  className="ml-2 px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition font-semibold cursor-pointer"
+                  tabIndex={-1}
+                >
+                  Novo Paciente
+                </button>
+              )}
+            </label>
             <select
               className="w-full border-2 border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400"
               value={pacienteSelecionado}
@@ -313,7 +325,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
             <div className="flex flex-1 justify-end gap-2">
               <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200">Fechar</button>
               <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700" disabled={loading}>
-                {loading ? 'Salvando...' : (agendamentoEditavel ? 'Alterar' : 'Marcar')}
+                {loading ? 'Salvando...' : (agendamentoEditavel ? 'Alterar' : 'Agendar')}
               </button>
             </div>
           </div>
@@ -459,20 +471,24 @@ function AgendaPageContent() {
               {getMonthMatrix(current.getFullYear(), current.getMonth()).map((week, i) =>
                 week.map((day, j) => {
                   const isClickable = day !== '';
-                  // Garante que day é number para evitar erro de tipo
-                  const dayNumber = typeof day === 'number' ? day : 1;
-                  const dayDate = new Date(current.getFullYear(), current.getMonth(), dayNumber);
-                  const ags = agendamentos.filter(a => {
-                    const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
-                    const dataDia = dayDate.toISOString().slice(0, 10);
-                    return dataAg === dataDia;
-                  });
+                  // Só processar agendamentos para dias válidos do mês
+                  let ags: any[] = [];
+                  let dayDate: Date | null = null;
+                  
+                  if (isClickable && typeof day === 'number') {
+                    dayDate = new Date(current.getFullYear(), current.getMonth(), day);
+                    ags = agendamentos.filter(a => {
+                      const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
+                      const dataDia = dayDate!.toISOString().slice(0, 10);
+                      return dataAg === dataDia;
+                    });
+                  }
                   return (
                     <div
                       key={i + '-' + j}
                       className={`h-16 relative border rounded-lg ${day === '' ? 'bg-slate-50' : 'bg-white'} ${(typeof day === 'number' && day === current.getDate() && current.getMonth() === new Date().getMonth() && current.getFullYear() === new Date().getFullYear()) ? 'border-blue-500' : 'border-slate-200'} ${isClickable ? 'cursor-pointer hover:bg-blue-50 transition' : ''}`}
                       onClick={() => {
-                        if (isClickable) {
+                        if (isClickable && dayDate) {
                           setCurrent(dayDate);
                           setView('week');
                         }
@@ -516,70 +532,244 @@ function AgendaPageContent() {
           <div>
             <div className="grid grid-cols-8 text-center text-slate-500 font-medium mb-2">
               <div></div>
-              {getWeekDays(current).map((d, i) => (
-                <div key={i} className="truncate">
-                  <span className="font-bold">{weekDays[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span><br />
-                  <span className="font-normal">{d.getDate()}</span>
-                </div>
-              ))}
+              {getWeekDays(current).map((d, i) => {
+                const now = new Date();
+                const isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                return (
+                  <div key={i} className={`truncate rounded-lg transition-all duration-200 ${isToday ? 'bg-blue-100/60 ring-2 ring-blue-300/60' : ''}`}>
+                    <span className="font-bold">{weekDays[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span><br />
+                    <span className="font-normal">{d.getDate()}</span>
+                  </div>
+                );
+              })}
             </div>
             {/* Horas do dia */}
-            <div className="grid grid-cols-8">
-              {Array.from({ length: 14 }, (_, h) => 7 + h).map((hour) => (
+            <div className="grid grid-cols-8 relative">
+              {Array.from({ length: 17 }, (_, h) => 6 + h).map((hour) => (
                 <React.Fragment key={hour}>
-                  <div className="text-xs text-slate-400 border-r border-slate-100 flex items-center justify-end pr-2 h-12" style={{minHeight:'3rem'}}>{hour}h</div>
+                  <div className="text-xs text-slate-500 border-r border-slate-200 flex items-center justify-end pr-3 h-12 bg-slate-50/50" style={{minHeight:'3rem'}}>
+                    <span className="font-medium">{hour}h</span>
+                  </div>
                   {getWeekDays(current).map((d, i) => {
-                    // Enquadrar agendamento no quadrante da hora cheia correspondente
-                    const ags = agendamentos.filter(a => {
+                    const now = new Date();
+                    const isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    const isPast = d < now && !isToday;
+                    
+                    // Verificar se este horário está ocupado por algum agendamento
+                    const dataSlot = d.toISOString().slice(0, 10);
+                    const horaSlot = hour * 60; // minutos desde 00:00
+                    const horaSlotFim = (hour + 1) * 60; // fim desta hora
+                    
+                    const agendamentosNoDia = agendamentos.filter(a => {
                       const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
-                      const dataDia = d.toISOString().slice(0, 10);
-                      
+                      return dataAg === dataSlot && a.hora;
+                    });
+                    
+                    // Verificar se algum agendamento intersecta com esta hora
+                    const isOcupado = agendamentosNoDia.some(a => {
                       if (!a.hora) return false;
                       
-                      // Pega só a hora cheia do agendamento
                       const [hStr, mStr] = a.hora.split(':');
-                      const agHour = parseInt(hStr, 10);
+                      const agHora = parseInt(hStr, 10) * 60 + parseInt(mStr, 10); // início do agendamento em minutos
+                      const agFim = agHora + (a.duracao_min || 60); // fim do agendamento em minutos
                       
-                      // Se o agendamento começa entre X:00 e X:59, ele aparece no quadrante Xh
-                      return dataAg === dataDia && agHour === hour;
+                      
+                      // Verificar se há intersecção: agendamento intersecta se:
+                      // - Começa antes do fim da hora E termina depois do início da hora
+                      return (agHora < horaSlotFim) && (agFim > horaSlot);
                     });
-                    // Só renderiza o agendamento se ele começa neste horário
+                    
                     return (
-                      <div key={i} className="h-12 border border-slate-100 hover:bg-blue-50 transition cursor-pointer relative" onClick={() => handleHorarioClick(d, hour)} style={{padding:0}}>
-                        {ags.map(a => {
-                          const nomeCompleto = pacientesMap[a.paciente_id] || '';
-                          const primeiroNome = nomeCompleto.split(' ')[0] || nomeCompleto;
-                          const isProcedimento = a.rotulo === 'Procedimento';
-                          const isRetorno = a.rotulo === 'Retorno';
-                          const isPessoal = a.rotulo === 'Pessoal';
-                          const bgColor = isProcedimento ? 'bg-blue-100' : isRetorno ? 'bg-green-100' : isPessoal ? 'bg-orange-100' : 'bg-slate-100';
-                          const textColor = isProcedimento ? 'text-blue-800' : isRetorno ? 'text-green-800' : isPessoal ? 'text-orange-800' : 'text-slate-800';
-                          
-                          return (
-                            <div
-                              key={a.id}
-                              className={`absolute left-1 right-1 top-1 bottom-1 ${bgColor} ${textColor} rounded px-1 py-0.5 text-xs z-10 flex flex-col items-center justify-center cursor-pointer`}
-                              style={{
-                                height: 'calc(100% - 0.25rem)',
-                                minHeight: '24px',
-                                maxHeight: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                              }}
-                              onClick={e => { e.stopPropagation(); handleAgendamentoClick(a); }}
-                            >
-                              <div className="font-bold leading-tight">{primeiroNome}</div>
-                              <div className="leading-tight">{(a.hora || '').slice(0, 5)}</div>
+                      <div key={i} className={`h-12 border border-slate-200 relative group transition-all duration-200 
+                        ${isOcupado ? 'cursor-not-allowed' : 'cursor-pointer'}
+                        ${isToday ? 'bg-blue-100/60 ring-2 ring-blue-200/40' : ''}
+                        ${isPast ? 'bg-slate-50 hover:bg-slate-100' : ''}
+                        ${isOcupado ? 'bg-red-100/70' : ''}
+                        ${isOcupado ? 'blocked-gradient' : ''}
+                        ${!isPast && !isOcupado ? 'hover:bg-blue-50 hover:border-blue-200' : ''}
+                      `} onClick={() => !isOcupado && handleHorarioClick(d, hour)} style={{padding:0}}>
+                        {/* Linha divisória dos 30 minutos */}
+                        <div className="absolute top-1/2 left-0 right-0 h-px bg-slate-100 opacity-50"></div>
+                        
+                        {/* Indicador de + ao hover (só para horários disponíveis) */}
+                        {!isPast && !isOcupado && (
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                            <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-200">
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
                             </div>
-                          );
-                        })}
+                          </div>
+                        )}
+                        
                       </div>
                     );
                   })}
                 </React.Fragment>
               ))}
+              
+              {/* Renderizar agendamentos em uma camada separada */}
+              {getWeekDays(current).map((d, dayIndex) => {
+                const dataDia = d.toISOString().slice(0, 10);
+                const agsDay = agendamentos.filter(a => {
+                  const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
+                  return dataAg === dataDia && a.hora;
+                });
+
+                return agsDay.map(a => {
+                  const [hStr, mStr] = a.hora.split(':');
+                  const agHour = parseInt(hStr, 10);
+                  const agMinutes = parseInt(mStr, 10);
+                  const totalMinutesFromStart = agHour * 60 + agMinutes;
+                  const durationMinutes = a.duracao_min || 60;
+                  
+                  // Calcular posição absoluta no grid
+                  const startHourIndex = agHour - 6; // 6h é o início do calendário
+                  const positionInHour = agMinutes / 60;
+                  const topPosition = (startHourIndex + positionInHour) * 48 + 2; // 48px por hora + 2px margem
+                  
+                  // Calcular altura total
+                  const heightInPixels = (durationMinutes / 60) * 48; // 48px por hora
+                  
+                  // Calcular posição horizontal (1 = coluna de horas, depois as 7 colunas dos dias)
+                  const leftPosition = (dayIndex + 1) * (100 / 8); // 8 colunas total (1 + 7)
+                  const widthPercentage = 100 / 8; // Largura de cada coluna
+                  
+                  const nomeCompleto = pacientesMap[a.paciente_id] || '';
+                  const primeiroNome = nomeCompleto.split(' ')[0] || nomeCompleto;
+                  const sobrenome = nomeCompleto.split(' ')[1] || '';
+                  const isProcedimento = a.rotulo === 'Procedimento';
+                  const isRetorno = a.rotulo === 'Retorno';
+                  const isPessoal = a.rotulo === 'Pessoal';
+                  
+                  // Cores mais sofisticadas com gradientes sutis
+                  const cardStyles = isProcedimento 
+                    ? { 
+                        bg: 'bg-gradient-to-br from-blue-500 to-blue-600', 
+                        text: 'text-white', 
+                        border: 'border-blue-400',
+                        shadow: 'shadow-blue-200/50',
+                        icon: '🩺'
+                      }
+                    : isRetorno 
+                    ? { 
+                        bg: 'bg-gradient-to-br from-emerald-500 to-emerald-600', 
+                        text: 'text-white', 
+                        border: 'border-emerald-400',
+                        shadow: 'shadow-emerald-200/50',
+                        icon: '🔄'
+                      }
+                    : isPessoal 
+                    ? { 
+                        bg: 'bg-gradient-to-br from-amber-500 to-orange-500', 
+                        text: 'text-white', 
+                        border: 'border-amber-400',
+                        shadow: 'shadow-amber-200/50',
+                        icon: '👤'
+                      }
+                    : { 
+                        bg: 'bg-gradient-to-br from-slate-500 to-slate-600', 
+                        text: 'text-white', 
+                        border: 'border-slate-400',
+                        shadow: 'shadow-slate-200/50',
+                        icon: '📅'
+                      };
+                  
+                  const isSmallCard = heightInPixels < 40;
+                  const isMediumCard = heightInPixels >= 40 && heightInPixels < 60;
+                  
+                  return (
+                    <div
+                      key={`${a.id}-${dayIndex}`}
+                      className={`absolute ${cardStyles.bg} ${cardStyles.text} ${cardStyles.border} 
+                        rounded-lg border-l-4 px-2 py-1 text-xs z-20 cursor-pointer 
+                        transform transition-all duration-200 hover:scale-105 hover:shadow-lg 
+                        ${cardStyles.shadow} overflow-hidden group`}
+                      style={{
+                        top: `${topPosition}px`,
+                        left: `calc(${leftPosition}% + 2px)`,
+                        width: `calc(${widthPercentage}% - 4px)`,
+                        height: `${Math.max(heightInPixels - 2, 28)}px`,
+                        minHeight: '28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                      }}
+                      onClick={e => { e.stopPropagation(); handleAgendamentoClick(a); }}
+                      title={`${nomeCompleto} - ${(a.hora || '').slice(0, 5)} (${durationMinutes}min) - ${a.rotulo}`}
+                    >
+                      {/* Card pequeno - só horário */}
+                      {isSmallCard && (
+                        <div className="flex flex-col items-center justify-center w-full h-full text-center">
+                          <span className="font-bold text-xs">{primeiroNome}</span>
+                          <span className="text-xs opacity-90">{(a.hora || '').slice(0, 5)}</span>
+                        </div>
+                      )}
+                      
+                      {/* Card médio - nome, horário e duração */}
+                      {isMediumCard && (
+                        <div className="flex flex-col items-center justify-center w-full h-full text-center">
+                          <span className="font-bold text-xs">{primeiroNome}</span>
+                          <span className="text-xs opacity-90">
+                            {(a.hora || '').slice(0, 5)} - {durationMinutes} min
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Card grande - informações completas centralizadas */}
+                      {!isSmallCard && !isMediumCard && (
+                        <div className="flex flex-col items-center justify-center w-full h-full text-center">
+                          <span className="font-bold text-sm">{primeiroNome}</span>
+                          <span className="text-xs opacity-90 mt-1">
+                            {(a.hora || '').slice(0, 5)} - {durationMinutes} min
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Brilho sutil no hover */}
+                      <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-lg"></div>
+                    </div>
+                  );
+                });
+              })}
+              
+              {/* Linha indicadora do horário atual */}
+              {(() => {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinutes = now.getMinutes();
+                const today = new Date().toDateString();
+                
+                // Verificar se hoje está na semana visível
+                const weekDays = getWeekDays(current);
+                const isTodayInWeek = weekDays.some(d => d.toDateString() === today);
+                
+                // Só mostrar se estiver dentro do horário de funcionamento (6h-22h) e hoje estiver na semana
+                if (currentHour >= 6 && currentHour <= 22 && isTodayInWeek) {
+                  const totalMinutes = currentHour * 60 + currentMinutes;
+                  const startMinutes = 6 * 60; // 6h em minutos
+                  const positionFromTop = ((totalMinutes - startMinutes) / 60) * 48; // 48px por hora
+                  
+                  return (
+                    <div 
+                      className="absolute left-0 right-0 z-10 pointer-events-none opacity-60"
+                      style={{ top: `${positionFromTop}px` }}
+                    >
+                      <div className="flex items-center">
+                        <div className="bg-red-400 text-white text-xs font-medium px-1.5 py-0.5 rounded shadow-sm ml-2 opacity-80">
+                          {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                        <div className="flex-1 h-px bg-red-400 opacity-50" style={{
+                          backgroundImage: 'repeating-linear-gradient(to right, currentColor 0px, currentColor 4px, transparent 4px, transparent 8px)'
+                        }}></div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
         )}

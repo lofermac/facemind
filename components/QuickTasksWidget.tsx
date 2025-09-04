@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { PlusIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
+import { Tab } from '@headlessui/react';
+import { ExclamationCircleIcon } from '@heroicons/react/24/solid';
 
 interface Tarefa {
   id: string;
@@ -10,7 +12,9 @@ interface Tarefa {
 }
 
 export default function QuickTasksWidget() {
-  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [tarefasPendentes, setTarefasPendentes] = useState<Tarefa[]>([]);
+  const [tarefasConcluidas, setTarefasConcluidas] = useState<Tarefa[]>([]);
+  const [abaAtiva, setAbaAtiva] = useState<'pendentes' | 'concluidas'>('pendentes');
   const [novaTarefa, setNovaTarefa] = useState('');
   const [loading, setLoading] = useState(false);
   const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
@@ -18,17 +22,29 @@ export default function QuickTasksWidget() {
   const carregarTarefas = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setTarefas([]);
+      setTarefasPendentes([]);
+      setTarefasConcluidas([]);
       return;
     }
-    const { data, error } = await supabase
-      .from('tarefas')
-      .select('id, user_id, descricao, is_completa')
-      .eq('user_id', user.id)
-      .eq('is_completa', false)
-      .order('id', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      setTarefas(data as Tarefa[]);
+    const [pendentes, concluidas] = await Promise.all([
+      supabase
+        .from('tarefas')
+        .select('id, user_id, descricao, is_completa')
+        .eq('user_id', user.id)
+        .eq('is_completa', false)
+        .order('id', { ascending: false }),
+      supabase
+        .from('tarefas')
+        .select('id, user_id, descricao, is_completa')
+        .eq('user_id', user.id)
+        .eq('is_completa', true)
+        .order('id', { ascending: false })
+    ]);
+    if (!pendentes.error && Array.isArray(pendentes.data)) {
+      setTarefasPendentes(pendentes.data as Tarefa[]);
+    }
+    if (!concluidas.error && Array.isArray(concluidas.data)) {
+      setTarefasConcluidas(concluidas.data as Tarefa[]);
     }
   }, []);
 
@@ -77,7 +93,8 @@ export default function QuickTasksWidget() {
       console.log('Tarefa concluída com sucesso:', id);
       // Pequeno delay para permitir a animação de conclusão
       setTimeout(() => {
-        setTarefas((prev) => prev.filter((t) => t.id !== id));
+        setTarefasPendentes((prev) => prev.filter((t) => t.id !== id));
+        setTarefasConcluidas((prev) => [...prev, { id, user_id: 'user_id', descricao: 'descricao', is_completa: true }]);
         setCompletingIds(prev => {
           const next = new Set(prev);
           next.delete(id);
@@ -100,7 +117,8 @@ export default function QuickTasksWidget() {
       .delete()
       .eq('id', id);
     if (!error) {
-      setTarefas(prev => prev.filter(t => t.id !== id));
+      setTarefasPendentes(prev => prev.filter(t => t.id !== id));
+      setTarefasConcluidas(prev => prev.filter(t => t.id !== id));
     }
   };
 
@@ -112,7 +130,7 @@ export default function QuickTasksWidget() {
   };
 
   return (
-    <div className="bg-white shadow-lg rounded-2xl p-6 sm:p-8 h-full min-h-[340px] transition-all duration-200 ease-in-out ring-1 ring-slate-200">
+    <div className="bg-white shadow-lg rounded-2xl p-6 sm:p-8 h-full min-h-[540px] transition-all duration-200 ease-in-out ring-1 ring-slate-200">
       <div className="mb-2">
         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <ClipboardDocumentCheckIcon className="w-6 h-6 text-blue-600" />
@@ -137,50 +155,84 @@ export default function QuickTasksWidget() {
           Adicionar
         </button>
       </div>
-      <div className="mt-5">
-        <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
-          {tarefas.map((t) => {
-            const isCompleting = completingIds.has(t.id);
-            return (
-              <li
-                key={t.id}
-                className={`group relative overflow-hidden rounded-xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 shadow-sm hover:shadow-md hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${isCompleting ? 'opacity-60 scale-95' : ''}`}
-              >
-                <div className="flex items-center justify-center gap-3 p-4 min-h-[60px]">
-                  <div className="flex-shrink-0 flex items-center justify-center">
-                    <span className="text-sm">⚫</span>
-                  </div>
-                  
-                  <div className={`flex-1 flex items-center ${isCompleting ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                    <p className="text-sm font-medium leading-relaxed w-full">{t.descricao}</p>
-                  </div>
-                  
-                  <div className="flex-shrink-0 flex items-center justify-center">
-                    <button
-                      aria-label="Concluir tarefa"
-                      onClick={() => concluirTarefa(t.id)}
-                      className="opacity-0 group-hover:opacity-100 p-2 rounded-full bg-green-50 hover:bg-green-100 hover:scale-110 transition-all duration-200 flex items-center justify-center"
-                      title="Marcar como concluída"
+      <div className="mt-6">
+        <Tab.Group selectedIndex={abaAtiva === 'pendentes' ? 0 : 1} onChange={i => setAbaAtiva(i === 0 ? 'pendentes' : 'concluidas')}>
+          <Tab.List className="flex space-x-2 bg-slate-100 rounded-xl p-1 mb-4">
+            <Tab className={({ selected }) => `flex-1 py-2 rounded-lg text-sm font-semibold transition ${selected ? 'bg-blue-600 text-white shadow' : 'text-slate-700 hover:bg-blue-100'}`}>Pendentes</Tab>
+            <Tab className={({ selected }) => `flex-1 py-2 rounded-lg text-sm font-semibold transition ${selected ? 'bg-green-600 text-white shadow' : 'text-slate-700 hover:bg-green-100'}`}>Concluídas</Tab>
+          </Tab.List>
+          <Tab.Panels>
+            <Tab.Panel>
+              <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {tarefasPendentes.map((t) => {
+                  const isCompleting = completingIds.has(t.id);
+                  return (
+                    <li
+                      key={t.id}
+                      className={`group relative overflow-hidden rounded-xl bg-gradient-to-r from-white to-slate-50 border border-slate-200 shadow-sm hover:shadow-md hover:from-blue-50 hover:to-indigo-50 transition-all duration-200 ${isCompleting ? 'opacity-60 scale-95' : ''}`}
                     >
-                      <span className="text-lg">✅</span>
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Linha decorativa */}
-                <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-              </li>
-            );
-          })}
-          {tarefas.length === 0 && (
-            <li className="py-0">
-              <div className="flex min-h-[220px] items-center justify-center text-center flex-col">
-                <span className="text-4xl" role="img" aria-label="anotacao">📝</span>
-                <p className="mt-3 text-sm text-slate-500 italic">Sem tarefas. Adicione uma.</p>
-              </div>
-            </li>
-          )}
-        </ul>
+                      <div className="flex items-center justify-center gap-3 p-2 min-h-[28px]">
+                        <div className="flex-shrink-0 flex items-center justify-center">
+                          <span className="inline-block w-3 h-3 rounded-full bg-yellow-400"></span>
+                        </div>
+                        <div className={`flex-1 flex items-center ${isCompleting ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                          <p className="text-sm font-medium leading-relaxed w-full">{t.descricao}</p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center justify-center">
+                          <button
+                            aria-label="Concluir tarefa"
+                            onClick={() => concluirTarefa(t.id)}
+                            className="opacity-0 group-hover:opacity-100 p-2 rounded-full bg-green-50 hover:bg-green-100 hover:scale-110 transition-all duration-200 flex items-center justify-center"
+                            title="Marcar como concluída"
+                          >
+                            <span className="text-lg">✅</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                    </li>
+                  );
+                })}
+                {tarefasPendentes.length === 0 && (
+                  <li className="py-0">
+                    <div className="flex min-h-[120px] items-center justify-center text-center flex-col">
+                      <span className="text-4xl" role="img" aria-label="anotacao">📝</span>
+                      <p className="mt-3 text-sm text-slate-500 italic">Sem tarefas pendentes.</p>
+                    </div>
+                  </li>
+                )}
+              </ul>
+            </Tab.Panel>
+            <Tab.Panel>
+              <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {tarefasConcluidas.map((t) => (
+                  <li
+                    key={t.id}
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-white to-slate-100 border border-slate-200 shadow-sm hover:shadow-md hover:from-green-50 hover:to-green-100 transition-all duration-200 opacity-80"
+                  >
+                    <div className="flex items-center justify-center gap-3 p-4 min-h-[48px]">
+                      <div className="flex-shrink-0 flex items-center justify-center">
+                        <span className="text-sm">✅</span>
+                      </div>
+                      <div className="flex-1 flex items-center line-through text-slate-400">
+                        <p className="text-sm font-medium leading-relaxed w-full">{t.descricao}</p>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+                  </li>
+                ))}
+                {tarefasConcluidas.length === 0 && (
+                  <li className="py-0">
+                    <div className="flex min-h-[120px] items-center justify-center text-center flex-col">
+                      <span className="text-4xl" role="img" aria-label="check">✅</span>
+                      <p className="mt-3 text-sm text-slate-500 italic">Nenhuma tarefa concluída ainda.</p>
+                    </div>
+                  </li>
+                )}
+              </ul>
+            </Tab.Panel>
+          </Tab.Panels>
+        </Tab.Group>
       </div>
     </div>
   );

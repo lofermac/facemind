@@ -23,7 +23,7 @@ export default function WidgetRadarChurn({ pacientes }: WidgetRadarChurnProps) {
   };
 
   return (
-    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200">
+    <div className="bg-white/80 shadow-xl rounded-2xl p-6 flex flex-col gap-4 border border-slate-200 hover:shadow-2xl transition-all duration-200 h-[370px]">
       <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-2">
         <UserMinusIcon className="w-6 h-6 text-purple-500" />
         Alerta de Perda
@@ -34,8 +34,8 @@ export default function WidgetRadarChurn({ pacientes }: WidgetRadarChurnProps) {
           <div className="mt-2 text-sm text-slate-500 italic">Sem risco de perda.</div>
         </div>
       ) : (
-        <ul className="divide-y divide-slate-100">
-          {pacientes.map((item) => (
+        <ul className="divide-y divide-slate-100 overflow-y-auto pr-1 max-h-[260px]">
+          {[...pacientes].sort((a, b) => a.mesesSemVisita - b.mesesSemVisita).map((item) => (
             <li 
               key={item.id} 
               className="py-3 flex items-center justify-between group cursor-pointer hover:bg-slate-50 rounded-md px-2 transition-colors"

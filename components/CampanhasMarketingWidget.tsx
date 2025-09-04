@@ -140,7 +140,7 @@ export default function CampanhasMarketingWidget() {
   const campanhaAtual = campanhas.find(c => c.numeroMes === mesAtual) || campanhas[0];
 
   return (
-    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 h-full min-h-[340px] group hover:shadow-2xl transition-all duration-200 ease-in-out border border-white/30">
+    <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-6 h-full min-h-[420px] group hover:shadow-2xl transition-all duration-200 ease-in-out border border-white/30">
       <div className="mb-4">
         <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
           <MegaphoneIcon className="w-6 h-6 text-purple-500" />
