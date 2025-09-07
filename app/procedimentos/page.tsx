@@ -16,6 +16,7 @@ import dynamic from 'next/dynamic';
 import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 import StatusBadge from '@/components/StatusBadge';
 import { calcProcedureStatus, normalizeText } from '@/utils/statusRules';
+import { useRef } from 'react';
 
 interface ProcedimentoRealizado {
   id: string;
@@ -88,6 +89,31 @@ function ProcedimentosInner() {
   const [categorias, setCategorias] = useState<string[]>([]);
   const [mapaDuracaoProcedimentos, setMapaDuracaoProcedimentos] = useState<Map<string, number | null>>(new Map());
   const router = useRouter();
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownAberto(false);
+      }
+    }
+    function handleEsc(event: KeyboardEvent) {
+      if (event.key === 'Escape') setDropdownAberto(false);
+    }
+    if (dropdownAberto) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEsc);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [dropdownAberto]);
 
   async function fetchDuracoesProcedimentos() {
     try {
@@ -345,16 +371,53 @@ function ProcedimentosInner() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <select 
-          className="bg-white/60 backdrop-blur-xl border border-white/30 shadow rounded-xl p-4 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 block w-full sm:w-1/4 sm:text-base text-slate-700 transition-all duration-200"
-          value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-        >
-          <option value="">Todas as Categorias</option>
-          {categorias.map((categoria) => (
-            <option key={categoria} value={categoria}>{categoria}</option>
-          ))}
-        </select>
+        {/* Dropdown customizado Apple-like para categorias */}
+        <div ref={dropdownRef} className="relative w-full sm:w-1/4 select-none">
+          <button
+            type="button"
+            className={`w-full flex items-center justify-between bg-white/80 backdrop-blur-xl border border-slate-200 shadow-md rounded-2xl px-4 py-4 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 text-base text-slate-700 font-normal outline-none transition-all duration-200 ${dropdownAberto ? 'ring-2 ring-blue-200 border-blue-200' : ''}`}
+            onClick={() => setDropdownAberto((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={dropdownAberto}
+          >
+            <span className="truncate px-2 py-1 rounded-xl text-center w-full">{categoriaFiltro === '' ? 'Todas as Categorias' : categoriaFiltro}</span>
+            <svg className={`w-5 h-5 ml-2 transition-transform duration-200 text-slate-400 self-center`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {dropdownAberto && (
+            <ul
+              tabIndex={-1}
+              className="absolute z-20 mt-2 w-full bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl py-2 ring-1 ring-slate-100 border border-slate-100 animate-fade-in"
+              role="listbox"
+            >
+              <li
+                role="option"
+                aria-selected={categoriaFiltro === ''}
+                className={`cursor-pointer flex items-center justify-center px-4 py-2 text-base rounded-xl font-normal transition-all duration-150 w-full text-center break-words whitespace-normal ${categoriaFiltro === '' ? 'ring-1 ring-blue-300 shadow-sm font-semibold' : 'hover:bg-slate-200/80'}`}
+                onClick={() => { setCategoriaFiltro(''); setDropdownAberto(false); }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setCategoriaFiltro(''); setDropdownAberto(false); } }}
+                tabIndex={0}
+              >
+                Todas as Categorias
+              </li>
+              {categorias.map((categoria) => (
+                <li
+                  key={categoria}
+                  role="option"
+                  aria-selected={categoriaFiltro === categoria}
+                  className={`cursor-pointer flex items-center justify-center px-4 py-2 text-base rounded-xl font-normal transition-all duration-150 w-full text-center break-words whitespace-normal ${categoriaFiltro === categoria ? 'ring-1 ring-blue-300 shadow-sm font-semibold' : 'hover:bg-slate-200/80'}`}
+                  onClick={() => { setCategoriaFiltro(categoria); setDropdownAberto(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setCategoriaFiltro(categoria); setDropdownAberto(false); } }}
+                  tabIndex={0}
+                >
+                  {categoria}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {/* Fim dropdown customizado */}
         <button 
           onClick={() => { setSearchTerm(''); setCategoriaFiltro(''); }}
           className="inline-flex items-center px-4 py-2 rounded-xl shadow bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 text-white font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 hover:shadow-2xl"

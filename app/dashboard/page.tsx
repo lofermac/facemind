@@ -248,22 +248,40 @@ export default function DashboardPage() {
             return;
           }
           
-          // Preparar dados dos procedimentos para o cálculo de status
-          const procsParaStatus = (paciente.procedimentos_realizados || []).map((proc: any) => {
+          // APLICAR LÓGICA DE RENOVAÇÃO: Agrupar por tipo de procedimento e considerar apenas o mais recente
+          const mapaPorTipoProc: Record<string, Array<{ data: Date, proc: any }>> = {};
+          (paciente.procedimentos_realizados || []).forEach((proc: any) => {
             const nomeProc = proc.procedimento_tabela_valores_id?.nome_procedimento;
-            // Usar normalização consistente (trim + toLowerCase)
-            const chaveLookup = String(nomeProc || '').toLowerCase().trim();
-            const duracaoMeses = mapaDuracao.get(chaveLookup);
+            if (!proc.data_procedimento || !nomeProc) return;
+            const chave = String(nomeProc).toLowerCase().trim();
+            const dataRealizacao = new Date(proc.data_procedimento);
+            dataRealizacao.setHours(0, 0, 0, 0);
             
-            return {
-              data_procedimento: proc.data_procedimento,
-              duracao_efeito_meses: duracaoMeses !== undefined ? duracaoMeses : null
-            };
+            (mapaPorTipoProc[chave] = mapaPorTipoProc[chave] || []).push({
+              data: dataRealizacao,
+              proc: proc
+            });
+          });
+
+          // Para cada tipo de procedimento, considerar apenas o mais recente
+          const procsDepoisRenovacao: Array<{ data_procedimento: string; duracao_efeito_meses: number | null }> = [];
+          Object.values(mapaPorTipoProc).forEach(lista => {
+            lista.sort((a, b) => a.data.getTime() - b.data.getTime());
+            if (lista.length > 0) {
+              const maisRecente = lista[lista.length - 1]; // O último da lista (mais recente)
+              const nomeProc = maisRecente.proc.procedimento_tabela_valores_id?.nome_procedimento;
+              const chaveLookup = String(nomeProc || '').toLowerCase().trim();
+              const duracaoMeses = mapaDuracao.get(chaveLookup);
+              procsDepoisRenovacao.push({
+                data_procedimento: maisRecente.proc.data_procedimento,
+                duracao_efeito_meses: duracaoMeses !== undefined ? duracaoMeses : null
+              });
+            }
           });
           
           // Usar a mesma função que a página /pacientes usa
           const statusCalculado = derivePatientStatusFromProcedures({
-            procedimentos: procsParaStatus,
+            procedimentos: procsDepoisRenovacao,
             created_at: paciente.created_at,
             paciente_status_banco: paciente.status,
             today: hojeUtc
@@ -530,22 +548,43 @@ export default function DashboardPage() {
       const oportunidades: ProcedimentoOportunidade[] = [];
       if (pacientes) {
         pacientes.forEach(paciente => {
+          // APLICAR LÓGICA DE RENOVAÇÃO: Agrupar por paciente + tipo de procedimento
+          const mapaPorPacienteEProc: Record<string, Array<{ data: Date, proc: any }>> = {};
           (paciente.procedimentos_realizados || []).forEach(proc => {
             const nomeProc = (proc as any).procedimento_tabela_valores_id?.nome_procedimento;
             if (!proc.data_procedimento || !nomeProc) return;
-            const chave = String(nomeProc).toLowerCase();
-            const duracao = mapaDuracao.get(chave);
-            if (!duracao) return;
-            const { status, dias } = calcProcedureStatus(proc.data_procedimento, duracao, hoje);
-            const diffDias = dias;
-            if (diffDias !== null && diffDias >= 0 && diffDias <= 30) {
-              // Não verificar mais agendamento futuro - mostrar todos os contatos imediatos
-              oportunidades.push({
-                id: `${paciente.id}-${(proc as any).data_procedimento}-${(proc as any).id}-${((proc as any).procedimento_tabela_valores_id?.nome_procedimento || '')}`,
-                nome: nomeProc,
-                paciente: paciente.nome,
-                diasParaVencer: diffDias,
-              });
+            const chave = `${paciente.id}-${String(nomeProc).toLowerCase()}`;
+            const dataRealizacao = new Date(proc.data_procedimento);
+            dataRealizacao.setHours(0, 0, 0, 0);
+            
+            (mapaPorPacienteEProc[chave] = mapaPorPacienteEProc[chave] || []).push({
+              data: dataRealizacao,
+              proc: proc
+            });
+          });
+
+          // Para cada grupo, considerar apenas o procedimento mais recente
+          Object.values(mapaPorPacienteEProc).forEach(lista => {
+            lista.sort((a, b) => a.data.getTime() - b.data.getTime());
+            if (lista.length > 0) {
+              const maisRecente = lista[lista.length - 1]; // O último da lista (mais recente)
+              const proc = maisRecente.proc;
+              const nomeProc = (proc as any).procedimento_tabela_valores_id?.nome_procedimento;
+              const chave = String(nomeProc).toLowerCase();
+              const duracao = mapaDuracao.get(chave);
+              if (!duracao) return;
+              
+              const { status, dias } = calcProcedureStatus(proc.data_procedimento, duracao, hoje);
+              const diffDias = dias;
+              if (diffDias !== null && diffDias >= 0 && diffDias <= 30) {
+                // Apenas procedimentos próximos ao vencimento (não renovados)
+                oportunidades.push({
+                  id: `${paciente.id}-${(proc as any).data_procedimento}-${(proc as any).id}-${((proc as any).procedimento_tabela_valores_id?.nome_procedimento || '')}`,
+                  nome: nomeProc,
+                  paciente: paciente.nome,
+                  diasParaVencer: diffDias,
+                });
+              }
             }
           });
         });
@@ -572,25 +611,46 @@ export default function DashboardPage() {
           }
         });
       }
-      // 1) Construir Carteira diretamente de procedimentos (estado atual: ativos)
+      // 1) Construir Carteira aplicando lógica de renovação
       const { data: procsCarteira } = await supabase
         .from('procedimentos_realizados')
-        .select('data_procedimento, categoria_nome, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses, categorias_procedimentos ( nome ) )');
+        .select('paciente_id, data_procedimento, categoria_nome, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses, categorias_procedimentos ( nome ) )');
+
+      // Agrupar por paciente + tipo de procedimento para aplicar lógica de renovação
+      const mapaCarteiraRenovacao: Record<string, Array<{ data: Date, rec: any }>> = {};
+      (procsCarteira || []).forEach((rec: any) => {
+        const nomeProc = rec?.procedimento_tabela_valores_id?.nome_procedimento;
+        if (!rec.data_procedimento || !nomeProc) return;
+        const chave = `${rec.paciente_id}-${String(nomeProc).toLowerCase()}`;
+        const dataRealizacao = new Date(rec.data_procedimento);
+        dataRealizacao.setHours(0, 0, 0, 0);
+        
+        (mapaCarteiraRenovacao[chave] = mapaCarteiraRenovacao[chave] || []).push({
+          data: dataRealizacao,
+          rec: rec
+        });
+      });
 
       const ativosDiretos: Record<string, number> = {};
-      (procsCarteira || []).forEach((rec: any) => {
-        const dataProc = rec?.data_procedimento;
-        const dur = rec?.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined;
-        if (!dataProc || !dur || dur <= 0) return;
-        
-        // Usar a mesma função que a página /procedimentos usa
-        const { status } = calcProcedureStatus(dataProc, dur, hoje);
-        if (status === 'ativo') {
-          const cat = rec?.categoria_nome
-            || rec?.procedimento_tabela_valores_id?.categorias_procedimentos?.nome
-            || rec?.procedimento_tabela_valores_id?.nome_procedimento
-            || 'Outros';
-          ativosDiretos[cat] = (ativosDiretos[cat] || 0) + 1;
+      // Para cada grupo, considerar apenas o procedimento mais recente
+      Object.values(mapaCarteiraRenovacao).forEach(lista => {
+        lista.sort((a, b) => a.data.getTime() - b.data.getTime());
+        if (lista.length > 0) {
+          const maisRecente = lista[lista.length - 1]; // O último da lista (mais recente)
+          const rec = maisRecente.rec;
+          const dataProc = rec?.data_procedimento;
+          const dur = rec?.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined;
+          if (!dataProc || !dur || dur <= 0) return;
+          
+          // Usar a mesma função que a página /procedimentos usa
+          const { status } = calcProcedureStatus(dataProc, dur, hoje);
+          if (status === 'ativo') {
+            const cat = rec?.categoria_nome
+              || rec?.procedimento_tabela_valores_id?.categorias_procedimentos?.nome
+              || rec?.procedimento_tabela_valores_id?.nome_procedimento
+              || 'Outros';
+            ativosDiretos[cat] = (ativosDiretos[cat] || 0) + 1;
+          }
         }
       });
 

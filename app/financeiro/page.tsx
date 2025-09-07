@@ -18,14 +18,19 @@ interface ProcedimentoFinanceiro {
   procedimento_nome: string | null;
   categoria_nome: string | null;
   valor_cobrado: number | null;
-  custo_produto?: number | null;
-  custo_insumos?: number | null;
-  custo_sala?: number | null;
+  custo_produto: number | null;
+  custo_insumos: number | null;
+  custo_sala: number | null;
 }
 
 function formatarData(data: string | null): string {
   if (!data) return '-';
-  return new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+  // Usar UTC consistentemente para evitar problemas de fuso horário
+  const date = new Date(data);
+  const dia = String(date.getUTCDate()).padStart(2, '0');
+  const mes = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const ano = date.getUTCFullYear();
+  return `${dia}/${mes}/${ano}`;
 }
 
 function formatarValor(valor: number | null): string {
@@ -51,24 +56,41 @@ export default function FinanceiroPage() {
   useEffect(() => {
     async function fetchProcedimentos() {
       setLoading(true);
-      // Buscar procedimentos com nome do paciente
+      // Buscar procedimentos com nome do paciente e do procedimento corretamente
       const { data, error } = await supabase
         .from('procedimentos_realizados')
-        .select('id, data_procedimento, procedimento_tabela_valores_id ( nome_procedimento ), categoria_nome, valor_cobrado, custo_produto, custo_insumos, custo_sala, paciente_id, pacientes (nome)')
+        .select(`
+          id, 
+          data_procedimento, 
+          procedimento_tabela_valores_id ( nome_procedimento ), 
+          categoria_nome, 
+          valor_cobrado, 
+          custo_produto, 
+          custo_insumos, 
+          custo_sala, 
+          paciente_id, 
+          pacientes (nome)
+        `)
         .order('data_procedimento', { ascending: false });
       if (!error && data) {
-        // Mapear nome do paciente para cada procedimento
+        // Mapear nome do paciente e procedimento para cada registro
         const procedimentosComPaciente = data.map((p: any) => ({
           ...p,
           paciente_nome: p.pacientes?.nome || '',
+          procedimento_nome: p.procedimento_tabela_valores_id?.nome_procedimento || p.procedimento_nome || 'Procedimento não especificado',
+          // Garantir que valores financeiros nunca sejam undefined
+          valor_cobrado: p.valor_cobrado || 0,
+          custo_produto: p.custo_produto || 0,
+          custo_insumos: p.custo_insumos || 0,
+          custo_sala: p.custo_sala || 0,
         }));
         setProcedimentos(procedimentosComPaciente);
-        // Descobrir anos únicos
+        // Descobrir anos únicos - usar UTC para consistência
         const anosUnicos = Array.from(new Set(
           procedimentosComPaciente
             .map((p: any) => {
               if (!p.data_procedimento) return undefined;
-              const ano = new Date(p.data_procedimento).getFullYear();
+              const ano = new Date(p.data_procedimento).getUTCFullYear();
               return isNaN(ano) ? undefined : ano;
             })
             .filter((v): v is number => typeof v === 'number')
@@ -93,51 +115,52 @@ export default function FinanceiroPage() {
     return matchAno && matchMes && matchCategoria;
   });
 
-  // Filtros para o gráfico (apenas ano e categoria)
+  // Filtros para o gráfico (apenas ano e categoria) - usar UTC consistentemente
   const procedimentosParaGrafico = procedimentos.filter(p => {
     if (!p.data_procedimento) return false;
     const data = new Date(p.data_procedimento);
-    const matchAno = filtroAno ? data.getFullYear() === filtroAno : true;
+    const matchAno = filtroAno ? data.getUTCFullYear() === filtroAno : true;
     const matchCategoria = filtroCategoria ? p.categoria_nome === filtroCategoria : true;
     return matchAno && matchCategoria;
   });
 
-  // Cálculos financeiros
-  const totalFaturado = procedimentosFiltrados.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+  // Cálculos financeiros - garantir que null seja tratado como 0
+  const totalFaturado = procedimentosFiltrados.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
   const totalCustos = procedimentosFiltrados.reduce((acc, p) => {
-    return acc + (p.custo_produto || 0) + (p.custo_insumos || 0) + (p.custo_sala || 0);
+    return acc + (p.custo_produto ?? 0) + (p.custo_insumos ?? 0) + (p.custo_sala ?? 0);
   }, 0);
-  const totalCustoProdutos = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_produto || 0), 0);
-  const totalCustoInsumos = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_insumos || 0), 0);
-  const totalCustoSala = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_sala || 0), 0);
+  const totalCustoProdutos = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_produto ?? 0), 0);
+  const totalCustoInsumos = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_insumos ?? 0), 0);
+  const totalCustoSala = procedimentosFiltrados.reduce((acc, p) => acc + (p.custo_sala ?? 0), 0);
   const lucroPeriodo = procedimentosFiltrados.reduce((acc, p) => {
-    const valor = p.valor_cobrado || 0;
-    const custo = (p.custo_produto || 0) + (p.custo_insumos || 0) + (p.custo_sala || 0);
+    const valor = p.valor_cobrado ?? 0;
+    const custo = (p.custo_produto ?? 0) + (p.custo_insumos ?? 0) + (p.custo_sala ?? 0);
     return acc + (valor - custo);
   }, 0);
-  const procedimentosDoMes = procedimentosFiltrados.filter(p => {
-    if (!p.data_procedimento) return false;
-    const data = new Date(p.data_procedimento);
-    const agora = new Date();
-    return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear();
-  });
-  const faturamentoMes = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+  // Cálculo do faturamento do mês - respeitar filtros selecionados
+  const faturamentoMes = filtroMes > 0 ? totalFaturado : 
+    procedimentosFiltrados.filter(p => {
+      if (!p.data_procedimento) return false;
+      const data = new Date(p.data_procedimento);
+      const agora = new Date();
+      return data.getUTCMonth() === agora.getUTCMonth() && data.getUTCFullYear() === agora.getUTCFullYear();
+    }).reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
   const ticketMedio = procedimentosFiltrados.length > 0 ? totalFaturado / procedimentosFiltrados.length : 0;
   const margemLucro = totalFaturado > 0 ? (lucroPeriodo / totalFaturado) * 100 : 0;
 
-  // Faturamento e Lucro por mês (do ano filtrado, ignorando filtro de mês)
+  // Faturamento e Lucro por mês (do ano filtrado, ignorando filtro de mês) - usar UTC consistentemente
   const faturamentoPorMes = Array.from({ length: 12 }, (_, i) => {
     const procedimentosDoMes = procedimentosParaGrafico.filter(p => {
       if (!p.data_procedimento) return false;
       const data = new Date(p.data_procedimento);
-      return data.getFullYear() === filtroAno && data.getMonth() === i;
+      return data.getUTCFullYear() === filtroAno && data.getUTCMonth() === i;
     });
-    const total = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+    const total = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
     const lucro = procedimentosDoMes.reduce((acc, p) => {
-      const valor = Number(p.valor_cobrado) || 0;
-      const custoProduto = Number(p.custo_produto) || 0;
-      const custoSala = Number(p.custo_sala) || 0;
-      const custoInsumos = Number(p.custo_insumos) || 0;
+      const valor = p.valor_cobrado ?? 0;
+      const custoProduto = p.custo_produto ?? 0;
+      const custoSala = p.custo_sala ?? 0;
+      const custoInsumos = p.custo_insumos ?? 0;
       return acc + (valor - (custoProduto + custoSala + custoInsumos));
     }, 0);
     return { mes: mesesNomes[i], total, lucro };
@@ -351,15 +374,15 @@ export default function FinanceiroPage() {
                 </h2>
                 <div className="space-y-4">
                   {(() => {
-                    // Calcular top categorias por faturamento - ALTERADO
+                    // Calcular top categorias por faturamento - CORRIGIDO
                     const topCategorias = procedimentosParaGrafico
-                      .filter(p => p.valor_cobrado && p.valor_cobrado > 0) // Só procedimentos com valor
+                      .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                       .reduce((acc, p) => {
                         // Pegar nome da categoria
                         const categoria = p.categoria_nome || 'Sem Categoria';
                         
                         if (categoria && categoria !== 'Sem Categoria') {
-                          acc[categoria] = (acc[categoria] || 0) + (p.valor_cobrado || 0);
+                          acc[categoria] = (acc[categoria] || 0) + (p.valor_cobrado ?? 0);
                         }
                         return acc;
                       }, {} as Record<string, number>);
@@ -420,11 +443,11 @@ export default function FinanceiroPage() {
                       <Pie
                         data={(() => {
                           const categorias = procedimentosParaGrafico
-                            .filter(p => p.valor_cobrado && p.valor_cobrado > 0) // Só procedimentos com valor
+                            .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                             .reduce((acc, p) => {
                               const cat = p.categoria_nome || 'Sem Categoria';
                               if (cat && cat !== 'Sem Categoria') {
-                                acc[cat] = (acc[cat] || 0) + (p.valor_cobrado || 0);
+                                acc[cat] = (acc[cat] || 0) + (p.valor_cobrado ?? 0);
                               }
                               return acc;
                             }, {} as Record<string, number>);
@@ -462,8 +485,8 @@ export default function FinanceiroPage() {
                       <Tooltip 
                         formatter={(value, name, props) => {
                           const totalValue = procedimentosParaGrafico
-                            .filter(p => p.valor_cobrado && p.valor_cobrado > 0)
-                            .reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+                            .filter(p => (p.valor_cobrado ?? 0) > 0)
+                            .reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
                           const percentage = totalValue > 0 ? ((Number(value) / totalValue) * 100).toFixed(1) : '0.0';
                           return [`${formatarValor(Number(value))} (${percentage}%)`, name];
                         }}
@@ -498,19 +521,19 @@ export default function FinanceiroPage() {
                     // Comparar com ano anterior - CORRIGIDO
                     const anoAnterior = filtroAno - 1;
                     
-                    // Filtrar procedimentos com valores válidos para análise precisa
+                    // Filtrar procedimentos com valores válidos para análise precisa - usar UTC
                     const procedimentosAtuaisValidos = procedimentosParaGrafico.filter(p => 
-                      p.valor_cobrado && p.valor_cobrado > 0 && p.data_procedimento
+                      (p.valor_cobrado ?? 0) > 0 && p.data_procedimento
                     );
                     
                     const procedimentosAnoAnterior = procedimentos.filter(p => {
-                      if (!p.data_procedimento || !p.valor_cobrado || p.valor_cobrado <= 0) return false;
-                      const ano = new Date(p.data_procedimento).getFullYear();
+                      if (!p.data_procedimento || (p.valor_cobrado ?? 0) <= 0) return false;
+                      const ano = new Date(p.data_procedimento).getUTCFullYear();
                       return ano === anoAnterior;
                     });
                     
-                    const faturamentoAtual = procedimentosAtuaisValidos.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
-                    const faturamentoAnterior = procedimentosAnoAnterior.reduce((acc, p) => acc + (p.valor_cobrado || 0), 0);
+                    const faturamentoAtual = procedimentosAtuaisValidos.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
+                    const faturamentoAnterior = procedimentosAnoAnterior.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
                     
                     const crescimentoFaturamento = faturamentoAnterior > 0 
                       ? ((faturamentoAtual - faturamentoAnterior) / faturamentoAnterior) * 100 
@@ -538,8 +561,8 @@ export default function FinanceiroPage() {
                     const faturamentoPorMesAtual = Array.from({length: 12}, () => 0);
                     procedimentosAtuaisValidos.forEach(p => {
                       if (p.data_procedimento) {
-                        const mes = new Date(p.data_procedimento).getMonth();
-                        faturamentoPorMesAtual[mes] += p.valor_cobrado || 0;
+                        const mes = new Date(p.data_procedimento).getUTCMonth();
+                        faturamentoPorMesAtual[mes] += p.valor_cobrado ?? 0;
                       }
                     });
                     
@@ -735,7 +758,7 @@ export default function FinanceiroPage() {
 
                     const totalFaturamentoAno = faturamentoPorMes.reduce((acc, mes) => acc + mes.total, 0);
                     const mediaFaturamento = totalFaturamentoAno / 12;
-                    const mediaProcedimentos = procedimentosParaGrafico.filter(p => p.valor_cobrado && p.valor_cobrado > 0).length / 12;
+                    const mediaProcedimentos = procedimentosParaGrafico.filter(p => (p.valor_cobrado ?? 0) > 0).length / 12;
                     const mesesAtivos = mesesComFaturamento.length;
 
                     // Análises avançadas para insights mensais

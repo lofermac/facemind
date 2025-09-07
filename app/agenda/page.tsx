@@ -530,15 +530,16 @@ function AgendaPageContent() {
           </div>
         ) : (
           <div>
+            {/* Cabeçalho da semana */}
             <div className="grid grid-cols-8 text-center text-slate-500 font-medium mb-2">
               <div></div>
               {getWeekDays(current).map((d, i) => {
                 const now = new Date();
                 const isToday = d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
                 return (
-                  <div key={i} className={`truncate rounded-lg transition-all duration-200 ${isToday ? 'bg-blue-100/60 ring-2 ring-blue-300/60' : ''}`}>
-                    <span className="font-bold">{weekDays[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span><br />
-                    <span className="font-normal">{d.getDate()}</span>
+                  <div key={i} className="truncate transition-all duration-200">
+                    <span className={`font-bold px-2 py-1 ${isToday ? 'text-blue-600' : ''}`}>{weekDays[d.getDay() === 0 ? 6 : d.getDay() - 1]}</span><br />
+                    <span className={`font-semibold px-2 py-0.5 ${isToday ? 'text-slate-900' : ''}`}>{d.getDate()}</span>
                   </div>
                 );
               })}
@@ -568,24 +569,36 @@ function AgendaPageContent() {
                     // Verificar se algum agendamento intersecta com esta hora
                     const isOcupado = agendamentosNoDia.some(a => {
                       if (!a.hora) return false;
-                      
                       const [hStr, mStr] = a.hora.split(':');
                       const agHora = parseInt(hStr, 10) * 60 + parseInt(mStr, 10); // início do agendamento em minutos
                       const agFim = agHora + (a.duracao_min || 60); // fim do agendamento em minutos
-                      
-                      
-                      // Verificar se há intersecção: agendamento intersecta se:
-                      // - Começa antes do fim da hora E termina depois do início da hora
                       return (agHora < horaSlotFim) && (agFim > horaSlot);
                     });
-                    
+                    const agendamentoOcupante = agendamentosNoDia.find(a => {
+                      if (!a.hora) return false;
+                      const [hStr, mStr] = a.hora.split(':');
+                      const agHora = parseInt(hStr, 10) * 60 + parseInt(mStr, 10); // início do agendamento em minutos
+                      const agFim = agHora + (a.duracao_min || 60); // fim do agendamento em minutos
+                      return (agHora < horaSlotFim) && (agFim > horaSlot);
+                    });
+                    let bgOcupado = '';
+                    if (isOcupado && agendamentoOcupante) {
+                      if (agendamentoOcupante.rotulo === 'Procedimento') {
+                        bgOcupado = 'bg-blue-200/40';
+                      } else if (agendamentoOcupante.rotulo === 'Retorno') {
+                        bgOcupado = 'bg-emerald-200/40';
+                      } else if (agendamentoOcupante.rotulo === 'Pessoal') {
+                        bgOcupado = 'bg-orange-200/40';
+                      } else {
+                        bgOcupado = 'bg-slate-200/40';
+                      }
+                    }
                     return (
                       <div key={i} className={`h-12 border border-slate-200 relative group transition-all duration-200 
                         ${isOcupado ? 'cursor-not-allowed' : 'cursor-pointer'}
                         ${isToday ? 'bg-blue-100/60 ring-2 ring-blue-200/40' : ''}
                         ${isPast ? 'bg-slate-50 hover:bg-slate-100' : ''}
-                        ${isOcupado ? 'bg-red-100/70' : ''}
-                        ${isOcupado ? 'blocked-gradient' : ''}
+                        ${isOcupado ? bgOcupado : ''}
                         ${!isPast && !isOcupado ? 'hover:bg-blue-50 hover:border-blue-200' : ''}
                       `} onClick={() => !isOcupado && handleHorarioClick(d, hour)} style={{padding:0}}>
                         {/* Linha divisória dos 30 minutos */}
@@ -593,7 +606,7 @@ function AgendaPageContent() {
                         
                         {/* Indicador de + ao hover (só para horários disponíveis) */}
                         {!isPast && !isOcupado && (
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center z-20">
                             <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-200">
                               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -736,40 +749,7 @@ function AgendaPageContent() {
               })}
               
               {/* Linha indicadora do horário atual */}
-              {(() => {
-                const now = new Date();
-                const currentHour = now.getHours();
-                const currentMinutes = now.getMinutes();
-                const today = new Date().toDateString();
-                
-                // Verificar se hoje está na semana visível
-                const weekDays = getWeekDays(current);
-                const isTodayInWeek = weekDays.some(d => d.toDateString() === today);
-                
-                // Só mostrar se estiver dentro do horário de funcionamento (6h-22h) e hoje estiver na semana
-                if (currentHour >= 6 && currentHour <= 22 && isTodayInWeek) {
-                  const totalMinutes = currentHour * 60 + currentMinutes;
-                  const startMinutes = 6 * 60; // 6h em minutos
-                  const positionFromTop = ((totalMinutes - startMinutes) / 60) * 48; // 48px por hora
-                  
-                  return (
-                    <div 
-                      className="absolute left-0 right-0 z-10 pointer-events-none opacity-60"
-                      style={{ top: `${positionFromTop}px` }}
-                    >
-                      <div className="flex items-center">
-                        <div className="bg-red-400 text-white text-xs font-medium px-1.5 py-0.5 rounded shadow-sm ml-2 opacity-80">
-                          {now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        <div className="flex-1 h-px bg-red-400 opacity-50" style={{
-                          backgroundImage: 'repeating-linear-gradient(to right, currentColor 0px, currentColor 4px, transparent 4px, transparent 8px)'
-                        }}></div>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+              {/* Removida conforme solicitação */}
             </div>
           </div>
         )}

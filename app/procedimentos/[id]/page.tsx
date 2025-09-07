@@ -18,6 +18,7 @@ import {
   PhotoIcon
 } from '@heroicons/react/24/outline';
 import ImageModal from '@/components/ImageModal';
+import GaleriaFotosModal from '@/components/GaleriaFotosModal';
 
 interface ProcedimentoDetalhes {
   id: string;
@@ -56,6 +57,9 @@ export default function DetalhesProcedimentoPage() {
   const [notFound, setNotFound] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imagemVisualizacao, setImagemVisualizacao] = useState<string | null>(null);
+  const [isGaleriaOpen, setIsGaleriaOpen] = useState(false);
+  const [grupoGaleria, setGrupoGaleria] = useState<'antes' | 'depois'>('antes');
+  const [indiceGaleria, setIndiceGaleria] = useState(0);
 
   useEffect(() => {
     if (procedimentoId) {
@@ -154,6 +158,12 @@ export default function DetalhesProcedimentoPage() {
   const openImageModal = (imageUrl: string) => {
     setImagemVisualizacao(imageUrl);
     setIsImageModalOpen(true);
+  };
+
+  const abrirGaleria = (grupo: 'antes' | 'depois', indice: number) => {
+    setGrupoGaleria(grupo);
+    setIndiceGaleria(indice);
+    setIsGaleriaOpen(true);
   };
 
   if (loading) {
@@ -314,7 +324,7 @@ export default function DetalhesProcedimentoPage() {
                               src={corrigido}
                               alt={`Foto antes ${index + 1}`}
                               className="w-full aspect-square object-cover rounded-lg border-2 border-white shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
-                              onClick={() => openImageModal(rawUrl)}
+                              onClick={() => abrirGaleria('antes', index)}
                               onLoad={(e) => {
                                 console.log('✅ Imagem ANTES carregada:', corrigido);
                               }}
@@ -365,7 +375,7 @@ export default function DetalhesProcedimentoPage() {
                               src={corrigido}
                               alt={`Foto depois ${index + 1}`}
                               className="w-full aspect-square object-cover rounded-lg border-2 border-white shadow-md cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
-                              onClick={() => openImageModal(rawUrl)}
+                              onClick={() => abrirGaleria('depois', index)}
                               onLoad={(e) => {
                                 console.log('✅ Imagem DEPOIS carregada:', corrigido);
                               }}
@@ -492,6 +502,16 @@ export default function DetalhesProcedimentoPage() {
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
         imageUrl={imagemVisualizacao}
+      />
+
+      {/* Galeria de Fotos Avançada */}
+      <GaleriaFotosModal
+        isOpen={isGaleriaOpen}
+        onClose={() => setIsGaleriaOpen(false)}
+        fotosAntes={procedimento?.fotos_antes_urls || []}
+        fotosDepois={procedimento?.fotos_depois_urls || []}
+        grupoInicial={grupoGaleria}
+        indiceInicial={indiceGaleria}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import AppleLikeLoader from '@/components/AppleLikeLoader';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import { useSearchParams } from 'next/navigation';
 import { derivePatientStatusFromProcedures } from '@/utils/statusRules';
+import { useRef } from 'react';
 
 // Tipos
 interface ProcedimentoRealizadoParaStatus {
@@ -42,13 +43,11 @@ interface PacienteComStatusCalculado extends PacienteBase {
 }
 
 const opcoesStatusFiltro = [
-  { value: 'Todos', label: 'Todos os Status' },
-  { value: 'Novo', label: 'Novo' },
-  { value: 'Ativo', label: 'Ativo (Em vigência)' },
-  { value: 'Contato', label: 'Contato (Vence em 30d)' },
-  { value: 'Vencido', label: 'Vencido' },
-  { value: 'Verificar', label: 'Verificar Duração' },
-  { value: 'Inativo', label: 'Inativo (Arquivado)' },
+  { value: 'Todos', label: 'Todos', color: 'bg-slate-100 text-slate-700' },
+  { value: 'Ativo', label: 'Ativo', color: 'bg-green-50 text-green-700' },
+  { value: 'Contato', label: 'Contato', color: 'bg-yellow-50 text-yellow-800' },
+  { value: 'Vencido', label: 'Vencido', color: 'bg-red-50 text-red-700' },
+  { value: 'Inativo', label: 'Inativo', color: 'bg-gray-300 text-gray-700' },
 ];
 
 // --- Funções Utilitárias de Formatação ---
@@ -105,6 +104,31 @@ function GerenciarPacientesPageContent() {
   const [mapaDuracaoProcedimentos, setMapaDuracaoProcedimentos] = useState<Map<string, number | null>>(new Map());
   const [showNovoPacienteModal, setShowNovoPacienteModal] = useState(false);
   const searchParams = useSearchParams();
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownAberto(false);
+      }
+    }
+    function handleEsc(event: KeyboardEvent) {
+      if (event.key === 'Escape') setDropdownAberto(false);
+    }
+    if (dropdownAberto) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEsc);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [dropdownAberto]);
 
   const getStatusColor = (statusCalculado: string | null) => {
     if (statusCalculado === 'Inativo') return 'bg-gray-400 text-white';
@@ -159,12 +183,36 @@ function GerenciarPacientesPageContent() {
       }
 
       const pacientesProcessados = (pacientesBase || []).map((paciente): PacienteComStatusCalculado => {
-        const procs = (paciente.procedimentos_realizados || []).map((p: any) => ({
-          data_procedimento: p.data_procedimento,
-          duracao_efeito_meses: p.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined,
-        }));
+        // APLICAR LÓGICA DE RENOVAÇÃO: Agrupar por tipo de procedimento e considerar apenas o mais recente
+        const mapaPorTipoProc: Record<string, Array<{ data: Date, proc: any }>> = {};
+        (paciente.procedimentos_realizados || []).forEach((p: any) => {
+          const nomeProc = p.procedimento_tabela_valores_id?.nome_procedimento;
+          if (!p.data_procedimento || !nomeProc) return;
+          const chave = String(nomeProc).toLowerCase().trim();
+          const dataRealizacao = new Date(p.data_procedimento);
+          dataRealizacao.setHours(0, 0, 0, 0);
+          
+          (mapaPorTipoProc[chave] = mapaPorTipoProc[chave] || []).push({
+            data: dataRealizacao,
+            proc: p
+          });
+        });
+
+        // Para cada tipo de procedimento, considerar apenas o mais recente
+        const procsDepoisRenovacao: Array<{ data_procedimento: string; duracao_efeito_meses: number | null | undefined }> = [];
+        Object.values(mapaPorTipoProc).forEach(lista => {
+          lista.sort((a, b) => a.data.getTime() - b.data.getTime());
+          if (lista.length > 0) {
+            const maisRecente = lista[lista.length - 1]; // O último da lista (mais recente)
+            procsDepoisRenovacao.push({
+              data_procedimento: maisRecente.proc.data_procedimento,
+              duracao_efeito_meses: maisRecente.proc.procedimento_tabela_valores_id?.duracao_efeito_meses as number | null | undefined,
+            });
+          }
+        });
+
         const status_calculado = derivePatientStatusFromProcedures({
-          procedimentos: procs,
+          procedimentos: procsDepoisRenovacao,
           created_at: paciente.created_at,
           paciente_status_banco: paciente.status,
           today: hojeUtc, // Usar data UTC consistente
@@ -201,7 +249,7 @@ function GerenciarPacientesPageContent() {
   useEffect(() => {
     const statusParam = searchParams?.get('status');
     if (statusParam) {
-      const validos = ['Todos','Novo','Ativo','Contato','Vencido','Verificar','Inativo'];
+      const validos = ['Todos','Ativo','Contato','Vencido','Inativo'];
       if (validos.includes(statusParam)) {
         setFiltroStatus(statusParam);
       }
@@ -293,15 +341,43 @@ function GerenciarPacientesPageContent() {
           value={filtroNome}
           onChange={(e) => setFiltroNome(e.target.value)}
         />
-        <select
-          className="bg-white/60 backdrop-blur-xl border border-white/30 shadow rounded-xl p-3 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 block sm:text-base text-slate-700 transition-all duration-200"
-          value={filtroStatus}
-          onChange={(e) => setFiltroStatus(e.target.value)}
-        >
-          {opcoesStatusFiltro.map((opcao) => (
-            <option key={opcao.value} value={opcao.value}>{opcao.label}</option>
-          ))}
-        </select>
+        {/* Dropdown customizado Apple-like */}
+        <div ref={dropdownRef} className="relative w-full sm:w-60 select-none">
+          <button
+            type="button"
+            className={`w-full flex items-center justify-between bg-white/80 backdrop-blur-xl border border-slate-200 shadow-md rounded-2xl px-4 py-4 focus:ring-2 focus:ring-blue-300 focus:border-blue-300 text-base text-slate-700 font-normal outline-none transition-all duration-200 ${dropdownAberto ? 'ring-2 ring-blue-200 border-blue-200' : ''}`}
+            onClick={() => setDropdownAberto((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={dropdownAberto}
+          >
+            <span className={`truncate ${opcoesStatusFiltro.find(o => o.value === filtroStatus)?.color} px-2 py-1 rounded-xl text-center w-full`}>{opcoesStatusFiltro.find(o => o.value === filtroStatus)?.label}</span>
+            <svg className={`w-5 h-5 ml-2 transition-transform duration-200 text-slate-400 self-center`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {dropdownAberto && (
+            <ul
+              tabIndex={-1}
+              className="absolute z-20 mt-2 w-full bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl py-2 ring-1 ring-slate-100 border border-slate-100 animate-fade-in"
+              role="listbox"
+            >
+              {opcoesStatusFiltro.map((opcao) => (
+                <li
+                  key={opcao.value}
+                  role="option"
+                  aria-selected={filtroStatus === opcao.value}
+                  className={`cursor-pointer flex items-center justify-center px-4 py-2 text-base rounded-xl font-normal transition-all duration-150 w-full text-center break-words whitespace-normal ${opcao.color} ${filtroStatus === opcao.value ? 'ring-1 ring-blue-300 shadow-sm font-semibold' : 'hover:bg-slate-200/80'}`}
+                  onClick={() => { setFiltroStatus(opcao.value); setDropdownAberto(false); }}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setFiltroStatus(opcao.value); setDropdownAberto(false); } }}
+                  tabIndex={0}
+                >
+                  {opcao.label}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        {/* Fim dropdown customizado */}
         <button
           onClick={() => {
             setFiltroNome('');

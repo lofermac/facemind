@@ -69,6 +69,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
   const [imagemEmVisualizacaoUrl, setImagemEmVisualizacaoUrl] = useState<string | null>(null);
   const [previewAntes, setPreviewAntes] = useState<string[]>([]);
   const [previewDepois, setPreviewDepois] = useState<string[]>([]);
+  const [valorTabelaSelecionado, setValorTabelaSelecionado] = useState<number | null>(null);
 
   interface PacienteSelecao { id: string; nome: string; }
 
@@ -120,12 +121,14 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         if (isEditMode && procedimentoInicial?.procedimento_nome) {
           const procMatch = lista.find(p => p.nome_procedimento === procedimentoInicial.procedimento_nome);
           if (procMatch) {
-            setProcedimentoTVSelId(procMatch.id);
+            setProcedimentoTVSelId(procMatch.id.toString());
             setProcedimentoNomeSelecionado(procMatch.nome_procedimento);
             // Só define valor cobrado se não houver um valor já carregado do registro
             if (!valorCobrado && procMatch.valor_pix) {
               setValorCobrado(procMatch.valor_pix.toFixed(2).replace('.', ','));
             }
+            // Sempre atualizar o valor da tabela selecionado
+            setValorTabelaSelecionado(procMatch.valor_pix);
           }
         }
       }
@@ -188,34 +191,40 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
 
     if (!selectedId) {
       if (initProcId) {
-        const matchById = listaProcedimentosTV.find(p => p.id === initProcId);
-        if (matchById) selectedId = matchById.id;
+        const matchById = listaProcedimentosTV.find(p => p.id.toString() === initProcId);
+        if (matchById) selectedId = matchById.id.toString();
       }
       if (!selectedId && procedimentoInicial.procedimento_nome) {
         const matchByName = listaProcedimentosTV.find(p => p.nome_procedimento === procedimentoInicial.procedimento_nome);
-        if (matchByName) selectedId = matchByName.id;
+        if (matchByName) selectedId = matchByName.id.toString();
       }
     }
 
     if (selectedId && procedimentoTVSelId !== selectedId) {
       setProcedimentoTVSelId(selectedId);
-      const proc = listaProcedimentosTV.find(p => p.id === selectedId);
+      const proc = listaProcedimentosTV.find(p => p.id.toString() === selectedId);
       if (proc) {
         setProcedimentoNomeSelecionado(proc.nome_procedimento);
         // manter valor do registro; se vazio, usar sugestão da tabela de valores
         if (!valorCobrado && proc.valor_pix) {
           setValorCobrado(proc.valor_pix.toFixed(2).replace('.', ','));
         }
+        // Sempre atualizar o valor da tabela selecionado
+        setValorTabelaSelecionado(proc.valor_pix);
       }
     }
   }, [isEditMode, procedimentoInicial, categoriaTVSelId, listaProcedimentosTV, procedimentoTVSelId]);
 
   useEffect(() => { /* Atualiza o nome do procedimento após seleção */
     if (procedimentoTVSelId) {
-      const procSelObj = listaProcedimentosTV.find(p => p.id === procedimentoTVSelId);
+      const procSelObj = listaProcedimentosTV.find(p => p.id.toString() === procedimentoTVSelId);
       if (procSelObj) {
         setProcedimentoNomeSelecionado(procSelObj.nome_procedimento);
+        // Atualizar o valor da tabela selecionado
+        setValorTabelaSelecionado(procSelObj.valor_pix);
       }
+    } else {
+      setValorTabelaSelecionado(null);
     }
   }, [procedimentoTVSelId, listaProcedimentosTV]);
 
@@ -336,6 +345,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
+      procedimento_nome: procedimentoNomeSelecionado.trim(),
       procedimento_tabela_valores_id: procedimentoTVSelId,
       data_procedimento: dataFormatadaParaSalvar,
       valor_cobrado: parseMonetario(valorCobrado),
@@ -467,7 +477,17 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         {/* Cole aqui o JSX do formulário da Instrução 98, pois a estrutura visual dos campos não mudou */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div>
-            <label htmlFor="paciente" className="block text-sm font-medium text-gray-700">Paciente <span className="text-red-500">*</span></label>
+            <label htmlFor="paciente" className="block text-sm font-medium text-gray-700 flex items-center justify-between">
+              <span>Paciente <span className="text-red-500">*</span></span>
+              <button
+                type="button"
+                onClick={() => window.location.href = '/pacientes/novo'}
+                className="ml-2 px-2 py-1 text-xs rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-200 hover:text-blue-800 transition font-semibold cursor-pointer"
+                tabIndex={-1}
+              >
+                Novo Paciente
+              </button>
+            </label>
             <select id="paciente" name="paciente" value={pacienteIdSelecionado} onChange={(e) => setPacienteIdSelecionado(e.target.value)} required
               className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
               <option value="">Selecionar</option>
@@ -515,16 +535,19 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                   setProcedimentoTVSelId(selectedProcId);
                   if (selectedProcId) {
                     setProcedimentoNomeSelecionado(selectedOption.text); 
-                    const procSelObj = listaProcedimentosTV.find(p => p.id === selectedProcId);
+                    const procSelObj = listaProcedimentosTV.find(p => p.id.toString() === selectedProcId);
                     // Só define valor se não há valor digitado ou se é modo criação
                     if ((!valorCobrado || !isEditMode) && procSelObj?.valor_pix) {
                       setValorCobrado(procSelObj.valor_pix.toFixed(2).replace('.', ','));
                     }
+                    // Atualizar o valor da tabela selecionado
+                    setValorTabelaSelecionado(procSelObj?.valor_pix || null);
                   } else {
                     setProcedimentoNomeSelecionado('');
                     if (!isEditMode) {
                       setValorCobrado('');
                     }
+                    setValorTabelaSelecionado(null);
                   }
               }} 
               disabled={!categoriaTVSelId || listaCategoriasTV.length === 0}
@@ -535,6 +558,20 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 <option key={proc.id} value={proc.id}>{proc.nome_procedimento}</option>
               ))}
             </select>
+            {/* Exibir valor da tabela após seleção do procedimento */}
+            {valorTabelaSelecionado !== null && valorTabelaSelecionado > 0 && (
+              <div className="mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-600">Valor de Tabela no Pix:</span>
+                  <span className="text-sm font-semibold text-gray-800">
+                    R$ {valorTabelaSelecionado.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Este é o valor sugerido da sua tabela de preços
+                </p>
+              </div>
+            )}
           </div>
           <div>
             <label htmlFor="dataProcedimento" className="block text-sm font-medium text-gray-700">Data do Procedimento <span className="text-red-500">*</span></label>
@@ -553,7 +590,6 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 mask={Number}
                 radix=","  
                 scale={2}
-                signed={false}
                 thousandsSeparator="."
                 padFractionalZeros={false}
                 normalizeZeros={false}
@@ -580,7 +616,6 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 mask={Number}
                 radix=","  
                 scale={2}
-                signed={false}
                 thousandsSeparator="."
                 padFractionalZeros={false}
                 normalizeZeros={false}
@@ -606,7 +641,6 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 mask={Number}
                 radix=","  
                 scale={2}
-                signed={false}
                 thousandsSeparator="."
                 padFractionalZeros={false}
                 normalizeZeros={false}
@@ -632,7 +666,6 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 mask={Number}
                 radix=","  
                 scale={2}
-                signed={false}
                 thousandsSeparator="."
                 padFractionalZeros={false}
                 normalizeZeros={false}
