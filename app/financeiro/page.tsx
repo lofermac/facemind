@@ -306,15 +306,42 @@ export default function FinanceiroPage() {
         )}
         {abaSelecionada === 'overview' && (
           <>
+            {/* Dados base para Overview - respeitar TODOS os filtros aplicados */}
+            {(() => {
+              // CRIAÇÃO DE BASE DE DADOS ÚNICA PARA OVERVIEW
+              // Se há filtro de mês, usar procedimentosFiltrados (que inclui filtro de mês)
+              // Se não há filtro de mês, usar procedimentosParaGrafico (ano + categoria apenas)
+              const dadosOverview = filtroMes > 0 ? procedimentosFiltrados : procedimentosParaGrafico;
+              
+              // Faturamento por mês - sempre mostrar o ano todo, mas filtrado por categoria se aplicado
+              const faturamentoPorMesOverview = Array.from({ length: 12 }, (_, i) => {
+                const procedimentosDoMes = procedimentosParaGrafico.filter(p => {
+                  if (!p.data_procedimento) return false;
+                  const data = new Date(p.data_procedimento);
+                  return data.getUTCFullYear() === filtroAno && data.getUTCMonth() === i;
+                });
+                const total = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
+                const lucro = procedimentosDoMes.reduce((acc, p) => {
+                  const valor = p.valor_cobrado ?? 0;
+                  const custoProduto = p.custo_produto ?? 0;
+                  const custoSala = p.custo_sala ?? 0;
+                  const custoInsumos = p.custo_insumos ?? 0;
+                  return acc + (valor - (custoProduto + custoSala + custoInsumos));
+                }, 0);
+                return { mes: mesesNomes[i], total, lucro };
+              });
+
+              return (
+                <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Gráfico de Faturamento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-2">
-                  <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
                 </h2>
                 <div className="w-full h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
+                    <BarChart data={faturamentoPorMesOverview} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
                       <defs>
                         <linearGradient id="faturamentoGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.9} />
@@ -338,11 +365,11 @@ export default function FinanceiroPage() {
               {/* Gráfico de Lucro */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                  <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
                 </h2>
                 <div className="w-full h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={faturamentoPorMes} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
+                    <BarChart data={faturamentoPorMesOverview} margin={{ top: 20, right: 30, left: 0, bottom: 0 }} barCategoryGap={14} barSize={26}>
                       <defs>
                         <linearGradient id="lucroGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#4ade80" stopOpacity={0.9} />
@@ -370,12 +397,12 @@ export default function FinanceiroPage() {
               {/* Widget 1: Top Categorias por Faturamento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-purple-700 mb-6 flex items-center gap-2">
-                  <Crown className="w-7 h-7 text-purple-400" /> Top Categorias <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <Crown className="w-7 h-7 text-purple-400" /> Top Categorias <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
                 </h2>
                 <div className="space-y-4">
                   {(() => {
-                    // Calcular top categorias por faturamento - CORRIGIDO
-                    const topCategorias = procedimentosParaGrafico
+                    // Calcular top categorias por faturamento - usar dados filtrados consistentes
+                    const topCategorias = dadosOverview
                       .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                       .reduce((acc, p) => {
                         // Pegar nome da categoria
@@ -435,14 +462,14 @@ export default function FinanceiroPage() {
               {/* Widget 2: Distribuição por Categoria */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-orange-700 mb-6 flex items-center gap-2">
-                  <Target className="w-7 h-7 text-orange-400" /> Distribuição por Categoria <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <Target className="w-7 h-7 text-orange-400" /> Distribuição por Categoria <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
                 </h2>
                 <div className="w-full h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={(() => {
-                          const categorias = procedimentosParaGrafico
+                          const categorias = dadosOverview
                             .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                             .reduce((acc, p) => {
                               const cat = p.categoria_nome || 'Sem Categoria';
@@ -484,7 +511,7 @@ export default function FinanceiroPage() {
                       </Pie>
                       <Tooltip 
                         formatter={(value, name, props) => {
-                          const totalValue = procedimentosParaGrafico
+                          const totalValue = dadosOverview
                             .filter(p => (p.valor_cobrado ?? 0) > 0)
                             .reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
                           const percentage = totalValue > 0 ? ((Number(value) / totalValue) * 100).toFixed(1) : '0.0';
@@ -514,22 +541,25 @@ export default function FinanceiroPage() {
               {/* Widget 3: Análise de Crescimento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-emerald-700 mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-7 h-7 text-emerald-400" /> Análise de Crescimento <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <TrendingUp className="w-7 h-7 text-emerald-400" /> Análise de Crescimento <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
                 </h2>
                 <div className="space-y-6">
                   {(() => {
-                    // Comparar com ano anterior - CORRIGIDO
+                    // Comparar com ano anterior - usar dados filtrados consistentes
                     const anoAnterior = filtroAno - 1;
                     
-                    // Filtrar procedimentos com valores válidos para análise precisa - usar UTC
-                    const procedimentosAtuaisValidos = procedimentosParaGrafico.filter(p => 
+                    // Filtrar procedimentos com valores válidos para análise precisa
+                    const procedimentosAtuaisValidos = dadosOverview.filter(p => 
                       (p.valor_cobrado ?? 0) > 0 && p.data_procedimento
                     );
                     
+                    // Para ano anterior, aplicar os mesmos filtros de categoria
                     const procedimentosAnoAnterior = procedimentos.filter(p => {
                       if (!p.data_procedimento || (p.valor_cobrado ?? 0) <= 0) return false;
                       const ano = new Date(p.data_procedimento).getUTCFullYear();
-                      return ano === anoAnterior;
+                      const matchAno = ano === anoAnterior;
+                      const matchCategoria = filtroCategoria ? p.categoria_nome === filtroCategoria : true;
+                      return matchAno && matchCategoria;
                     });
                     
                     const faturamentoAtual = procedimentosAtuaisValidos.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
@@ -733,12 +763,12 @@ export default function FinanceiroPage() {
               {/* Widget 4: Performance Mensal */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-slate-700 mb-6 flex items-center gap-2">
-                  <Users className="w-7 h-7 text-slate-400" /> Performance Mensal <span className="text-base font-normal text-gray-400">({filtroAno})</span>
+                  <Users className="w-7 h-7 text-slate-400" /> Performance Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
                 </h2>
                 <div className="space-y-4">
                   {(() => {
-                    // Análise do melhor e pior mês - CORRIGIDO
-                    const mesesComFaturamento = faturamentoPorMes.filter(mes => mes.total > 0);
+                    // Análise do melhor e pior mês - usar dados filtrados consistentes
+                    const mesesComFaturamento = faturamentoPorMesOverview.filter(mes => mes.total > 0);
                     
                     if (mesesComFaturamento.length === 0) {
                       return (
@@ -756,9 +786,9 @@ export default function FinanceiroPage() {
                       mes.total < min.total ? mes : min
                     );
 
-                    const totalFaturamentoAno = faturamentoPorMes.reduce((acc, mes) => acc + mes.total, 0);
+                    const totalFaturamentoAno = faturamentoPorMesOverview.reduce((acc, mes) => acc + mes.total, 0);
                     const mediaFaturamento = totalFaturamentoAno / 12;
-                    const mediaProcedimentos = procedimentosParaGrafico.filter(p => (p.valor_cobrado ?? 0) > 0).length / 12;
+                    const mediaProcedimentos = dadosOverview.filter(p => (p.valor_cobrado ?? 0) > 0).length / 12;
                     const mesesAtivos = mesesComFaturamento.length;
 
                     // Análises avançadas para insights mensais
@@ -935,6 +965,9 @@ export default function FinanceiroPage() {
                 </div>
               </div>
             </div>
+                </>
+              );
+            })()}
           </>
         )}
         {/* Tabela de Procedimentos: só aparece na aba Smart */}
