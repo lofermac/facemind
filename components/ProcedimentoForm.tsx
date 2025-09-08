@@ -14,7 +14,7 @@ import type { ProcedimentoValor } from '@/app/tabela-valores/[categoriaId]/page'
 export interface ProcedimentoRealizadoFormData { 
   paciente_id: string;
   categoria_nome: string; 
-  procedimento_nome: string; 
+  procedimento_tabela_valores_id: string;
   data_procedimento: string; 
   valor_cobrado: number;
   custo_produto: number;
@@ -29,7 +29,8 @@ export interface ProcedimentoRealizadoFormData {
 export interface ProcedimentoRealizadoExistente extends ProcedimentoRealizadoFormData {
     id: string;
     created_at: string;
-    procedimento_tabela_valores_id?: string | null; // usar o ID salvo para pré-seleção
+    // Campos adicionais para carregamento dos dados durante edição
+    procedimento_nome?: string; // Nome do procedimento carregado via join para exibição
 }
 
 interface ProcedimentoFormProps {
@@ -186,7 +187,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     // Só tenta quando já temos categoria definida e a lista de procedimentos carregada
     if (!categoriaTVSelId || listaProcedimentosTV.length === 0) return;
 
-    const initProcId = (procedimentoInicial.procedimento_tabela_valores_id as string) || '';
+    const initProcId = procedimentoInicial.procedimento_tabela_valores_id || '';
     let selectedId = procedimentoTVSelId;
 
     if (!selectedId) {
@@ -342,10 +343,9 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
 
     // No handleSubmit, ajustar parseFloat para aceitar vírgula e remover separador de milhar
     const parseMonetario = (valor: string) => parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0;
-    const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at'> = {
+    const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at' | 'procedimento_nome'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
-      procedimento_nome: procedimentoNomeSelecionado.trim(),
       procedimento_tabela_valores_id: procedimentoTVSelId,
       data_procedimento: dataFormatadaParaSalvar,
       valor_cobrado: parseMonetario(valorCobrado),

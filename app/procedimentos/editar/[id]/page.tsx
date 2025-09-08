@@ -25,7 +25,12 @@ export default function EditarProcedimentoPage() {
         setNotFound(false);
         const { data, error } = await supabase
           .from('procedimentos_realizados')
-          .select('*')
+          .select(`
+            *,
+            procedimento_tabela_valores_id (
+              nome_procedimento
+            )
+          `)
           .eq('id', procedimentoId)
           .single();
 
@@ -34,7 +39,16 @@ export default function EditarProcedimentoPage() {
           toast.error('Falha ao carregar dados do procedimento.');
           setNotFound(true);
         } else if (data) {
-          setProcedimentoParaEditar(data as ProcedimentoRealizadoExistente);
+          // Extrair o nome do procedimento do join
+          const procedimentoNome = data.procedimento_tabela_valores_id?.nome_procedimento || '';
+          
+          // Criar objeto com nome do procedimento para pré-seleção
+          const procedimentoComNome = {
+            ...data,
+            procedimento_nome: procedimentoNome
+          } as ProcedimentoRealizadoExistente;
+          
+          setProcedimentoParaEditar(procedimentoComNome);
         } else {
           setNotFound(true);
           toast.error('Procedimento não encontrado.');
