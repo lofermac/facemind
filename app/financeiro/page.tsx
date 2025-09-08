@@ -11,6 +11,18 @@ import { BarProps } from 'recharts';
 import AppleLikeLoader from '@/components/AppleLikeLoader';
 import FinanceiroCardList from './FinanceiroCardList';
 
+const COLOR_PALETTE = [
+  { hex: '#a78bfa', tailwind: 'bg-purple-400', text: 'text-purple-600' }, // Lighter purple
+  { hex: '#60a5fa', tailwind: 'bg-blue-400', text: 'text-blue-600' },   // Lighter blue
+  { hex: '#4ade80', tailwind: 'bg-green-400', text: 'text-green-600' },  // Lighter green
+  { hex: '#facc15', tailwind: 'bg-yellow-400', text: 'text-yellow-600' }, // Lighter yellow
+  { hex: '#f87171', tailwind: 'bg-red-400', text: 'text-red-600' },     // Lighter red
+  { hex: '#818cf8', tailwind: 'bg-indigo-400', text: 'text-indigo-600' }, // Lighter indigo
+  { hex: '#f472b6', tailwind: 'bg-pink-400', text: 'text-pink-600' },   // Lighter pink
+  { hex: '#2dd4bf', tailwind: 'bg-teal-400', text: 'text-teal-600' },   // Lighter teal
+];
+const defaultColor = { hex: '#94a3b8', tailwind: 'bg-slate-400', text: 'text-slate-600' };
+
 interface ProcedimentoFinanceiro {
   id: string;
   data_procedimento: string | null;
@@ -48,6 +60,7 @@ export default function FinanceiroPage() {
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroAno, setFiltroAno] = useState(new Date().getFullYear());
+  const [filtroAnoOverview, setFiltroAnoOverview] = useState(new Date().getFullYear());
   const [filtroMes, setFiltroMes] = useState(0); // 0 = todos os meses
   const [categorias, setCategorias] = useState<string[]>([]);
   const [anos, setAnos] = useState<number[]>([]);
@@ -96,14 +109,26 @@ export default function FinanceiroPage() {
             .filter((v): v is number => typeof v === 'number')
         ));
         setAnos(anosUnicos.sort((a, b) => b - a));
+        if (anosUnicos.length > 0) {
+          setFiltroAno(anosUnicos[0]);
+          setFiltroAnoOverview(anosUnicos[0]);
+        }
         // Descobrir categorias únicas
         const cats = Array.from(new Set(procedimentosComPaciente.map((p: any) => p.categoria_nome).filter(Boolean)));
-        setCategorias(cats);
+        setCategorias(cats.sort());
       }
       setLoading(false);
     }
     fetchProcedimentos();
   }, []);
+
+  const sortedCategorias = [...categorias].sort();
+  const categoryColorMap = sortedCategorias.reduce((acc, cat, index) => {
+      acc[cat] = COLOR_PALETTE[index % COLOR_PALETTE.length];
+      return acc;
+  }, {} as Record<string, { hex: string; tailwind: string, text: string }>);
+
+  const getColorForCategory = (category: string) => categoryColorMap[category] || defaultColor;
 
   // Filtro correto: só traz procedimentos do mês e ano selecionados (ou todos se filtroMes=0)
   const procedimentosFiltrados = procedimentos.filter(p => {
@@ -153,7 +178,7 @@ export default function FinanceiroPage() {
     const procedimentosDoMes = procedimentosParaGrafico.filter(p => {
       if (!p.data_procedimento) return false;
       const data = new Date(p.data_procedimento);
-      return data.getUTCFullYear() === filtroAno && data.getUTCMonth() === i;
+      return data.getUTCFullYear() === filtroAnoOverview && data.getUTCMonth() === i;
     });
     const total = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
     const lucro = procedimentosDoMes.reduce((acc, p) => {
@@ -201,9 +226,23 @@ export default function FinanceiroPage() {
                   Select
             </button>
           </div>
+            {abaSelecionada === 'overview' && (
+              <div className="ml-4">
+              <select
+                  className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-5 py-2 h-11 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-base text-slate-700 transition-all duration-200 font-medium w-full sm:w-auto min-w-[110px]"
+                value={filtroAnoOverview}
+                onChange={e => setFiltroAnoOverview(Number(e.target.value))}
+              >
+                {anos.map(ano => (
+                  <option key={ano} value={ano}>{ano}</option>
+                ))}
+              </select>
+              </div>
+            )}
         </div>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-stretch sm:items-center justify-end w-full md:w-auto mt-4 md:mt-0">
             {abaSelecionada === 'select' && (
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-stretch sm:items-center justify-end w-full md:w-auto mt-4 md:mt-0">
+              <>
             <select
                   className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-lg rounded-xl px-5 py-2 h-11 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-base text-slate-700 transition-all duration-200 font-medium w-full sm:w-auto min-w-[110px]"
               value={filtroAno}
@@ -233,8 +272,9 @@ export default function FinanceiroPage() {
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
-          </div>
+            </>
         )}
+          </div>
           </div>
         </div>
         {abaSelecionada === 'select' && (
@@ -308,17 +348,18 @@ export default function FinanceiroPage() {
           <>
             {/* Dados base para Overview - respeitar TODOS os filtros aplicados */}
             {(() => {
-              // CRIAÇÃO DE BASE DE DADOS ÚNICA PARA OVERVIEW
-              // Se há filtro de mês, usar procedimentosFiltrados (que inclui filtro de mês)
-              // Se não há filtro de mês, usar procedimentosParaGrafico (ano + categoria apenas)
-              const dadosOverview = filtroMes > 0 ? procedimentosFiltrados : procedimentosParaGrafico;
-              
+              const procedimentosParaOverview = procedimentos.filter(p => {
+                if (!p.data_procedimento) return false;
+                const data = new Date(p.data_procedimento);
+                return data.getUTCFullYear() === filtroAnoOverview;
+              });
+
               // Faturamento por mês - sempre mostrar o ano todo, mas filtrado por categoria se aplicado
               const faturamentoPorMesOverview = Array.from({ length: 12 }, (_, i) => {
-                const procedimentosDoMes = procedimentosParaGrafico.filter(p => {
+                const procedimentosDoMes = procedimentosParaOverview.filter(p => {
                   if (!p.data_procedimento) return false;
                   const data = new Date(p.data_procedimento);
-                  return data.getUTCFullYear() === filtroAno && data.getUTCMonth() === i;
+                  return data.getUTCFullYear() === filtroAnoOverview && data.getUTCMonth() === i;
                 });
                 const total = procedimentosDoMes.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
                 const lucro = procedimentosDoMes.reduce((acc, p) => {
@@ -337,7 +378,7 @@ export default function FinanceiroPage() {
               {/* Gráfico de Faturamento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-2">
-                  <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
+                  <PiggyBank className="w-7 h-7 text-blue-400" /> Faturamento Mensal <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="w-full h-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -365,7 +406,7 @@ export default function FinanceiroPage() {
               {/* Gráfico de Lucro */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                  <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
+                  <LineChart className="w-7 h-7 text-green-400" /> Lucro Mensal <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="w-full h-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -397,12 +438,12 @@ export default function FinanceiroPage() {
               {/* Widget 1: Top Categorias por Faturamento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-purple-700 mb-6 flex items-center gap-2">
-                  <Crown className="w-7 h-7 text-purple-400" /> Top Categorias <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
+                  <Crown className="w-7 h-7 text-purple-400" /> Top Categorias <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="space-y-4">
                   {(() => {
                     // Calcular top categorias por faturamento - usar dados filtrados consistentes
-                    const topCategorias = dadosOverview
+                    const topCategorias = procedimentosParaOverview
                       .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                       .reduce((acc, p) => {
                         // Pegar nome da categoria
@@ -422,7 +463,7 @@ export default function FinanceiroPage() {
                     if (entries.length === 0) {
                       return (
                         <div className="text-center py-8 text-slate-500">
-                          <p className="text-sm">Nenhuma categoria encontrada para {filtroAno}</p>
+                          <p className="text-sm">Nenhuma categoria encontrada para {filtroAnoOverview}</p>
                         </div>
                       );
                     }
@@ -430,8 +471,8 @@ export default function FinanceiroPage() {
                     const maxValor = entries[0][1]; // Maior valor já está primeiro após sort
                     
                     return entries.map(([nome, valor], index) => {
-                      const cores = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500'];
                       const porcentagem = maxValor > 0 ? (valor / maxValor) * 100 : 0;
+                      const color = getColorForCategory(nome);
                       
                       return (
                         <div key={nome} className="flex items-center gap-4">
@@ -443,11 +484,11 @@ export default function FinanceiroPage() {
                               <span className="font-semibold text-slate-700 text-sm" title={nome}>
                                 {nome}
                               </span>
-                              <span className="font-bold text-purple-600">{formatarValor(valor)}</span>
+                              <span className={`font-bold ${color.text}`}>{formatarValor(valor)}</span>
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2">
                               <div 
-                                className={`h-2 rounded-full ${cores[index]} transition-all duration-500`}
+                                className={`h-2 rounded-full ${color.tailwind} transition-all duration-500`}
                                 style={{ width: `${porcentagem}%` }}
                               ></div>
                             </div>
@@ -462,14 +503,14 @@ export default function FinanceiroPage() {
               {/* Widget 2: Distribuição por Categoria */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-orange-700 mb-6 flex items-center gap-2">
-                  <Target className="w-7 h-7 text-orange-400" /> Distribuição por Categoria <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
+                  <Target className="w-7 h-7 text-orange-400" /> Distribuição por Categoria <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="w-full h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={(() => {
-                          const categorias = dadosOverview
+                          const categorias = procedimentosParaOverview
                             .filter(p => (p.valor_cobrado ?? 0) > 0) // Só procedimentos com valor
                             .reduce((acc, p) => {
                               const cat = p.categoria_nome || 'Sem Categoria';
@@ -479,14 +520,12 @@ export default function FinanceiroPage() {
                               return acc;
                             }, {} as Record<string, number>);
                           
-                          const cores = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#ec4899', '#14b8a6'];
-                          
                           const dados = Object.entries(categorias)
                             .filter(([nome, valor]) => valor > 0 && nome !== 'Sem Categoria')
                             .map(([nome, valor], index) => ({
                               name: nome,
                               value: valor,
-                              fill: cores[index % cores.length]
+                              fill: getColorForCategory(nome).hex
                             }))
                             .sort((a, b) => b.value - a.value);
 
@@ -511,7 +550,7 @@ export default function FinanceiroPage() {
                       </Pie>
                       <Tooltip 
                         formatter={(value, name, props) => {
-                          const totalValue = dadosOverview
+                          const totalValue = procedimentosParaOverview
                             .filter(p => (p.valor_cobrado ?? 0) > 0)
                             .reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
                           const percentage = totalValue > 0 ? ((Number(value) / totalValue) * 100).toFixed(1) : '0.0';
@@ -541,15 +580,15 @@ export default function FinanceiroPage() {
               {/* Widget 3: Análise de Crescimento */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-emerald-700 mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-7 h-7 text-emerald-400" /> Análise de Crescimento <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''}{filtroMes > 0 ? ` • ${mesesNomes[filtroMes - 1]}` : ''})</span>
+                  <TrendingUp className="w-7 h-7 text-emerald-400" /> Análise de Crescimento <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="space-y-6">
                   {(() => {
                     // Comparar com ano anterior - usar dados filtrados consistentes
-                    const anoAnterior = filtroAno - 1;
+                    const anoAnterior = filtroAnoOverview - 1;
                     
                     // Filtrar procedimentos com valores válidos para análise precisa
-                    const procedimentosAtuaisValidos = dadosOverview.filter(p => 
+                    const procedimentosAtuaisValidos = procedimentosParaOverview.filter(p => 
                       (p.valor_cobrado ?? 0) > 0 && p.data_procedimento
                     );
                     
@@ -558,8 +597,8 @@ export default function FinanceiroPage() {
                       if (!p.data_procedimento || (p.valor_cobrado ?? 0) <= 0) return false;
                       const ano = new Date(p.data_procedimento).getUTCFullYear();
                       const matchAno = ano === anoAnterior;
-                      const matchCategoria = filtroCategoria ? p.categoria_nome === filtroCategoria : true;
-                      return matchAno && matchCategoria;
+                      // Overview não deve ser afetado por filtro de categoria
+                      return matchAno;
                     });
                     
                     const faturamentoAtual = procedimentosAtuaisValidos.reduce((acc, p) => acc + (p.valor_cobrado ?? 0), 0);
@@ -625,7 +664,7 @@ export default function FinanceiroPage() {
                                   <p className="text-sm font-medium text-emerald-700 mb-3">Crescimento de Faturamento</p>
                                   <div className="bg-white/80 rounded-xl px-4 py-3 border border-emerald-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-bold text-emerald-900">{filtroAno}</span>
+                                      <span className="text-sm font-bold text-emerald-900">{filtroAnoOverview}</span>
                                       <span className="text-sm font-semibold text-emerald-800">
                                         {formatarValor(faturamentoAtual)}
                                       </span>
@@ -658,7 +697,7 @@ export default function FinanceiroPage() {
                                   <p className="text-sm font-medium text-blue-700 mb-3">Crescimento de Volume</p>
                                   <div className="bg-white/80 rounded-xl px-4 py-3 border border-blue-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-bold text-blue-900">{filtroAno}</span>
+                                      <span className="text-sm font-bold text-blue-900">{filtroAnoOverview}</span>
                                       <span className="text-sm font-semibold text-blue-800">
                                         {procedimentosAtual} procedimentos
                                       </span>
@@ -691,7 +730,7 @@ export default function FinanceiroPage() {
                                   <p className="text-sm font-medium text-purple-700 mb-3">Crescimento de Ticket Médio</p>
                                   <div className="bg-white/80 rounded-xl px-4 py-3 border border-purple-300/60 shadow-sm w-64">
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className="text-sm font-bold text-purple-900">{filtroAno}</span>
+                                      <span className="text-sm font-bold text-purple-900">{filtroAnoOverview}</span>
                                       <span className="text-sm font-semibold text-purple-800">
                                         {formatarValor(ticketMedioAtual)}
                                       </span>
@@ -763,7 +802,7 @@ export default function FinanceiroPage() {
               {/* Widget 4: Performance Mensal */}
               <div className="bg-white rounded-2xl shadow-lg p-8 border border-slate-100">
                 <h2 className="text-2xl font-bold text-slate-700 mb-6 flex items-center gap-2">
-                  <Users className="w-7 h-7 text-slate-400" /> Performance Mensal <span className="text-base font-normal text-gray-400">({filtroAno}{filtroCategoria ? ` • ${filtroCategoria}` : ''})</span>
+                  <Users className="w-7 h-7 text-slate-400" /> Performance Mensal <span className="text-base font-normal text-gray-400">({filtroAnoOverview})</span>
                 </h2>
                 <div className="space-y-4">
                   {(() => {
@@ -773,7 +812,7 @@ export default function FinanceiroPage() {
                     if (mesesComFaturamento.length === 0) {
                       return (
                         <div className="text-center py-8 text-slate-500">
-                          <p className="text-sm">Nenhum faturamento encontrado para {filtroAno}</p>
+                          <p className="text-sm">Nenhum faturamento encontrado para {filtroAnoOverview}</p>
                         </div>
                       );
                     }
@@ -788,7 +827,7 @@ export default function FinanceiroPage() {
 
                     const totalFaturamentoAno = faturamentoPorMesOverview.reduce((acc, mes) => acc + mes.total, 0);
                     const mediaFaturamento = totalFaturamentoAno / 12;
-                    const mediaProcedimentos = dadosOverview.filter(p => (p.valor_cobrado ?? 0) > 0).length / 12;
+                    const mediaProcedimentos = procedimentosParaOverview.filter(p => (p.valor_cobrado ?? 0) > 0).length / 12;
                     const mesesAtivos = mesesComFaturamento.length;
 
                     // Análises avançadas para insights mensais

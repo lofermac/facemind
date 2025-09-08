@@ -89,10 +89,13 @@ export default function FormulariosPage() {
           Gerenciar Categorias
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
+      <div 
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mt-8"
+        style={{ gridAutoRows: '1fr' }}
+      >
         {categories.map(category => (
           <Link href={`/formularios/${category.id}`} key={category.id}>
-            <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col justify-between transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30 cursor-pointer">
+            <div className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl p-8 flex flex-col justify-center items-center transition-all duration-200 hover:shadow-2xl hover:-translate-y-1 border border-white/30 cursor-pointer h-full">
               <div className="relative">
                 <h2 className="text-xl font-bold text-slate-900 text-center">
                   {category.name}
