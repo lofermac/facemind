@@ -8,9 +8,20 @@ const withPWA = nextPWA({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = withPWA({
-  // Permite gerar app router sem warning
+  // Configuração otimizada para Turbopack
+  reactStrictMode: false,
+  
+  // Configurações experimentais para Turbopack
   experimental: {
-    appDir: true,
+    // Remover forceSwcTransforms pois não é necessário com Turbopack
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
 
   images: {

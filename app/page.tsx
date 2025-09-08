@@ -1,292 +1,581 @@
 "use client";
-import dynamic from "next/dynamic";
-import { useState, Suspense, lazy } from "react";
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
+import { useState, useCallback, memo } from "react";
+import { 
+  Bars3Icon, 
+  XMarkIcon,
+  PlayCircleIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  CalendarDaysIcon,
+  DocumentTextIcon,
+  BellIcon,
+  HeartIcon,
+  CameraIcon,
+  CurrencyDollarIcon,
+  FolderIcon,
+  ClipboardDocumentListIcon
+} from "@heroicons/react/24/outline";
 import Image from "next/image";
-const Particles = dynamic(() => import("@tsparticles/react").then(mod => mod.Particles), { ssr: false });
-const DepoimentosCarousel = lazy(() => import("../components/DepoimentosCarousel"));
 
-export default function LandingPage() {
+// Mover tabs para fora do componente para evitar recriação
+const TABS_DATA: Record<'alertas' | 'fidelidade' | 'galeria', {
+  title: string;
+  description: string;
+  features: string[];
+}> = {
+    alertas: {
+      title: "Alertas Proativos",
+      description: "O sistema monitora automaticamente a duração de cada procedimento e te avisa quando é hora de entrar em contato com o paciente para renovação. Transforme seu arquivo passivo em uma fonte ativa de receita.",
+      features: [
+        "Notificações automáticas por procedimento",
+        "Timeline personalizada por tipo de tratamento", 
+        "Integração com WhatsApp para contato direto"
+      ]
+    },
+    fidelidade: {
+      title: "Índice de Fidelidade",
+      description: "Uma métrica exclusiva que analisa 4 critérios únicos: pontualidade, frequência de retorno, variedade de procedimentos e valor investido. Identifique seus melhores pacientes e potencialize relacionamentos.",
+      features: [
+        "Score personalizado de 0 a 100%",
+        "Análise comportamental detalhada",
+        "Sugestões de ações para cada perfil"
+      ]
+    },
+    galeria: {
+      title: "Galeria Visual",
+      description: "Organize automaticamente todas as fotos de antes e depois por paciente e procedimento. Crie apresentações profissionais que impressionam e convencem durante a consulta.",
+      features: [
+        "Organização automática por data e procedimento",
+        "Comparativos lado a lado em alta resolução",
+        "Exportação profissional para apresentações"
+      ]
+    }
+};
+
+const LandingPage = memo(function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'alertas' | 'fidelidade' | 'galeria'>('alertas');
+
+  const handleMenuToggle = useCallback(() => {
+    setMenuOpen(prev => !prev);
+  }, []);
+
+  const handleTabChange = useCallback((tab: 'alertas' | 'fidelidade' | 'galeria') => {
+    setActiveTab(tab);
+  }, []);
+
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#1a1440] via-[#2a1a5e] to-[#3a206e] relative overflow-x-hidden">
-      {/* Partículas animadas no fundo (desligadas em telas < sm) */}
-      <div className="hidden sm:block">
-        <Particles
-          id="tsparticles-landing"
-          options={{
-            background: { color: "transparent" },
-            fpsLimit: 60,
-            particles: {
-              color: { value: ["#a78bfa", "#f472b6", "#fff"] },
-              links: { enable: true, color: "#fff", opacity: 0.06 },
-              move: { enable: true, speed: 0.4 },
-              number: { value: 24 },
-              opacity: { value: 0.10 },
-              shape: { type: "circle" },
-              size: { value: { min: 1, max: 3 } },
-            },
-            detectRetina: true,
-          }}
-          className="absolute inset-0 z-0 pointer-events-none"
-        />
+    <div className="min-h-screen w-full bg-gray-950 text-white font-system">
+      
+      {/* HEADER ULTRA MINIMAL */}
+      <header className="fixed top-0 left-0 w-full z-50 bg-gray-950/90 backdrop-blur-xl border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
+          <div className="flex items-center">
+            <Image src="/logo.png" alt="FaceMind" width={120} height={32} priority className="h-8 w-auto" />
       </div>
-      {/* HEADER PREMIUM FIXO */}
-      <header className="fixed top-0 left-0 w-full z-30 flex items-center justify-between px-6 sm:px-8 py-4 bg-gradient-to-r from-[#1a1440]/80 via-[#2a1a5e]/80 to-[#3a206e]/80 backdrop-blur-2xl border-b border-white/10 shadow-lg animate-fade-in-header h-20">
-        <div className="flex items-center gap-3 h-full">
-          <Image src="/logo.png" alt="Logo FaceMind" width={120} height={40} priority className="h-10 w-auto drop-shadow-xl" />
-        </div>
-        {/* Links Desktop */}
-        <nav className="hidden md:flex flex-1 items-center justify-center gap-8 h-full">
-          <a href="#recursos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Recursos</a>
-          <a href="#planos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Planos</a>
-          <a href="#depoimentos" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Depoimentos</a>
-          <a href="#contato" className="text-white/80 hover:text-white font-medium text-lg transition-colors duration-200 flex items-center h-full">Contato</a>
+          
+          <nav className="hidden md:flex items-center gap-12">
+            <a href="#recursos" className="text-gray-400 hover:text-white text-sm font-medium transition-colors duration-200">Recursos</a>
+            <a href="#precos" className="text-gray-400 hover:text-white text-sm font-medium transition-colors duration-200">Preços</a>
         </nav>
-        {/* Botões */}
-        <div className="flex items-center gap-4">
-          {/* Hamburger Mobile */}
-          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-white/90 focus:outline-none">
-            {menuOpen ? <XMarkIcon className="h-8 w-8" /> : <Bars3Icon className="h-8 w-8" />}
+          
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={handleMenuToggle} 
+              className="md:hidden text-gray-400 hover:text-white transition-colors"
+            >
+              {menuOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
           </button>
-          <a href="/profissionais/login" className="hidden sm:inline-flex px-5 py-2 rounded-lg bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-xl hover:from-blue-500 hover:to-blue-700 hover:scale-[1.07] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-300 border border-blue-300/40 relative overflow-hidden group">
-            <span className="relative z-10">Login</span>
-            <span className="absolute left-0 top-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-          </a>
+            <a 
+              href="/profissionais/login" 
+              className="hidden sm:block text-gray-400 hover:text-white text-sm font-medium transition-colors duration-200"
+            >
+              Entrar
+            </a>
+          </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu */}
       {menuOpen && (
-        <div className="fixed top-20 left-0 w-full bg-gradient-to-b from-[#1a1440]/90 via-[#2a1a5e]/90 to-[#3a206e]/90 backdrop-blur-xl border-b border-white/10 z-30 md:hidden animate-fade-in">
-          <div className="flex flex-col items-center py-6 space-y-6">
-            <a onClick={() => setMenuOpen(false)} href="#recursos" className="text-white text-lg font-medium">Recursos</a>
-            <a onClick={() => setMenuOpen(false)} href="#planos" className="text-white text-lg font-medium">Planos</a>
-            <a onClick={() => setMenuOpen(false)} href="#depoimentos" className="text-white text-lg font-medium">Depoimentos</a>
-            <a onClick={() => setMenuOpen(false)} href="#contato" className="text-white text-lg font-medium">Contato</a>
-            <a onClick={() => setMenuOpen(false)} href="/profissionais/login" className="mt-4 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white font-semibold shadow-lg">Login</a>
+        <div className="fixed top-20 left-0 w-full bg-gray-950/95 backdrop-blur-xl border-b border-gray-800/50 z-40 md:hidden">
+          <div className="px-8 py-8 space-y-6">
+            <a href="#recursos" className="block text-gray-400 hover:text-white text-sm font-medium transition-colors">Recursos</a>
+            <a href="#precos" className="block text-gray-400 hover:text-white text-sm font-medium transition-colors">Preços</a>
+            <a href="/profissionais/login" className="block text-gray-400 hover:text-white text-sm font-medium transition-colors">Entrar</a>
           </div>
         </div>
       )}
 
-      {/* HERO SECTION */}
-      <section className="relative z-10 flex flex-col items-center justify-center pt-32 pb-20 px-4 animate-fade-in">
-        {/* Badge de novidade */}
-        <span className="mb-10 px-6 py-2 rounded-full bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-semibold text-base shadow-lg animate-bounce-in">✨ Novidade: IA Generativa GPT-4 Integrada</span>
-        <div className="relative group">
-          <Image src="/logo.png" alt="Logo FaceMind" width={180} height={60} priority className="h-20 w-auto mb-4 drop-shadow-2xl" />
-        </div>
-        <h1 className="text-5xl md:text-6xl font-extrabold text-white text-center mb-2 tracking-tight animate-slide-up leading-tight" style={{ fontFamily: 'Poppins, Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
-          O Futuro da <br />
-          <span className="bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">Estética Digital</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-slate-200 text-center max-w-2xl mb-8 animate-fade-in">
-          Revolucione sua clínica com inteligência artificial de última geração. <span className="text-sky-300 font-semibold">Análises precisas</span>, gestão inteligente e <span className="text-pink-300 font-semibold">resultados extraordinários</span>.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-4 animate-fade-in">
-          <a href="#planos" className="px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 text-white font-bold text-lg shadow-xl hover:from-indigo-600 hover:to-pink-600 hover:scale-[1.08] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 flex items-center gap-2">
-            Solicitar Demonstração <span className="text-2xl">→</span>
-          </a>
-        </div>
-      </section>
-
-      {/* MÉTRICAS DE CONFIANÇA */}
-      <section className="relative z-10 max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-        {[
-          { icon: '🎯', value: '10K+', label: 'Procedimentos Realizados' },
-          { icon: '🏅', value: '98%', label: 'Satisfação dos Clientes' },
-          { icon: '📈', value: '500+', label: 'Clínicas Parceiras' },
-          { icon: '⏰', value: '24/7', label: 'Suporte Disponível' },
-        ].map((item, i) => (
-          <div key={i} className="flex flex-col items-center justify-center bg-white/10 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/10 animate-fade-in hover:scale-105 hover:bg-white/20 transition-all duration-300 cursor-pointer" style={{ animationDelay: `${0.1 + i * 0.1}s` }}>
-            <span className="text-4xl md:text-5xl mb-2">{item.icon}</span>
-            <span className="text-2xl font-bold text-white mb-1">{item.value}</span>
-            <span className="text-white/80 text-base">{item.label}</span>
+      {/* HERO SECTION - Apple Style */}
+      <section className="relative z-10 pt-40 pb-32 px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          
+          <h1 className="text-6xl md:text-8xl font-bold text-white mb-8 tracking-tight leading-none">
+            A gestão da sua clínica,{" "}
+            <span className="text-blue-500">elevada à perfeição</span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-gray-300 mb-16 max-w-3xl mx-auto leading-relaxed font-light">
+            FaceMind é a plataforma tudo-em-um que organiza sua rotina, impressiona seus pacientes e multiplica seu faturamento. Foco no que importa: resultados.
+          </p>
+          
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
+            <button className="group bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-medium transition-all duration-200 min-w-[200px] hover:scale-105 hover:shadow-xl hover:shadow-blue-500/25 relative overflow-hidden">
+              <span className="relative z-10">Testar Gratuitamente</span>
+              <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12"></div>
+            </button>
+            <button className="group flex items-center gap-3 text-blue-500 hover:text-blue-400 px-8 py-4 rounded-lg border border-blue-500 hover:border-blue-400 transition-all duration-200 min-w-[200px] justify-center hover:scale-105 hover:shadow-lg">
+              <PlayCircleIcon className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+              Ver em ação
+            </button>
           </div>
-        ))}
-      </section>
-
-      {/* RECURSOS INOVADORES */}
-      <section id="recursos" className="relative z-10 max-w-6xl mx-auto px-4 py-20">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-white text-center mb-6 tracking-tight animate-fade-in">
-          Recursos <span className="bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">Inovadores</span>
-        </h2>
-        <p className="text-lg md:text-xl text-slate-200 text-center max-w-3xl mx-auto mb-14 animate-fade-in">
-          Tecnologia de ponta para transformar sua clínica em uma referência mundial no mercado
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {[
-            {
-              icon: '🧠',
-              title: 'IA Generativa Avançada',
-              desc: 'Análise facial em tempo real com recomendações personalizadas baseadas em machine learning',
-            },
-            {
-              icon: '📅',
-              title: 'Agendamento Inteligente',
-              desc: 'Sistema automatizado com IA para otimização de horários e lembretes inteligentes',
-            },
-            {
-              icon: '👥',
-              title: 'Gestão Completa',
-              desc: 'Controle total do histórico, evolução e preferências de cada paciente',
-            },
-            {
-              icon: '🔒',
-              title: 'Segurança Avançada',
-              desc: 'Proteção de dados com criptografia de ponta e autenticação multifator',
-            },
-            {
-              icon: '📊',
-              title: 'Relatórios Inteligentes',
-              desc: 'Dashboards e insights automáticos para decisões estratégicas',
-            },
-            {
-              icon: '🤖',
-              title: 'Automação de Processos',
-              desc: 'Fluxos automáticos para reduzir tarefas manuais e aumentar a produtividade',
-            },
-          ].map((item, i) => (
-            <div key={i} className="flex flex-col items-center text-center bg-white/10 backdrop-blur-2xl rounded-3xl p-10 shadow-2xl border border-white/10 animate-fade-in hover:scale-105 hover:bg-white/20 transition-all duration-300 group cursor-pointer" style={{ animationDelay: `${0.1 + i * 0.1}s` }}>
-              <span className="text-4xl mb-4">{item.icon}</span>
-              <h3 className="text-2xl font-semibold text-white mb-2 group-hover:text-fuchsia-200 transition-colors duration-200">{item.title}</h3>
-              <p className="text-slate-200 text-lg group-hover:text-white transition-colors duration-200">{item.desc}</p>
-            </div>
-          ))}
         </div>
       </section>
 
-      {/* PLANOS */}
-      <section id="planos" className="relative z-10 max-w-6xl mx-auto px-4 py-20">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-white text-center mb-6 tracking-tight animate-fade-in">
-          Planos que <span className="bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">Crescem</span> com Você
-        </h2>
-        <p className="text-lg md:text-xl text-slate-200 text-center max-w-3xl mx-auto mb-14 animate-fade-in">
-          Escolha o plano ideal e comece a transformar seus resultados hoje mesmo
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {[
-            {
-              name: 'Starter',
-              price: 'R$ 97',
-              desc: 'Perfeito para começar sua jornada digital',
-              features: ['Até 50 pacientes', 'IA básica para análise', 'Agendamento inteligente', 'Relatórios essenciais', 'Suporte por email', '1 usuário'],
-              cta: 'Escolher Plano',
-              highlight: false,
-            },
-            {
-              name: 'Profissional',
-              price: 'R$ 197',
-              desc: 'A escolha dos profissionais de sucesso',
-              features: ['Até 500 pacientes', 'IA completa + análises faciais', 'Automação de processos', 'Relatórios avançados', 'Suporte prioritário 24/7', 'Até 3 usuários', 'Integração WhatsApp', 'Backup automático', 'API personalizada'],
-              cta: 'Começar Agora',
-              highlight: true,
-            },
-            {
-              name: 'Enterprise',
-              price: 'R$ 397',
-              desc: 'Para clínicas que pensam grande',
-              features: ['Pacientes ilimitados', 'IA generativa completa', 'Dashboard executivo', 'Consultoria estratégica', 'Usuários ilimitados', 'White label completo', 'Integração ERP/CRM', 'Suporte dedicado', 'Treinamento personalizado'],
-              cta: 'Escolher Plano',
-              highlight: false,
-            },
-          ].map((item, i) => (
-            <div key={i} className={`relative flex flex-col items-center bg-white/10 backdrop-blur-2xl rounded-3xl p-10 shadow-2xl border border-white/10 animate-fade-in ${item.highlight ? 'scale-105 border-2 border-fuchsia-400 shadow-2xl bg-gradient-to-br from-white/30 via-fuchsia-200/10 to-white/10' : ''} hover:scale-105 hover:bg-white/20 transition-all duration-300 cursor-pointer`} style={{ animationDelay: `${0.1 + i * 0.1}s` }}>
-              {item.highlight && (
-                <span className="absolute -top-6 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 text-white font-bold text-sm shadow-lg border-2 border-white/40 z-10">Mais Vendido</span>
-              )}
-              <h3 className="text-2xl font-bold text-white mb-2">{item.name}</h3>
-              <span className="text-3xl font-extrabold text-white mb-2">{item.price}<span className="text-lg font-medium">/mês</span></span>
-              <p className="text-slate-200 text-lg mb-4 text-center">{item.desc}</p>
-              <ul className="mb-6 space-y-2 text-white/90 text-base text-left">
-                {item.features.map((f, idx) => (
-                  <li key={idx} className="flex items-center gap-2"><span className="text-green-400">✔</span> {f}</li>
+      {/* SEÇÃO 1: INTELIGÊNCIA DE NEGÓCIO */}
+      <section className="relative z-10 py-32 px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
+            
+            {/* Left Column - Sticky Content */}
+            <div className="lg:sticky lg:top-32 space-y-12">
+              <div>
+                <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">
+                  Seus números, finalmente{" "}
+                  <span className="text-blue-500">sob controle</span>
+                </h2>
+                <p className="text-xl text-gray-300 leading-relaxed font-light">
+                  Visualize o crescimento da sua clínica com dashboards que transformam dados em decisões estratégicas. Saiba exatamente onde investir e como crescer.
+                </p>
+              </div>
+              
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="bg-gray-900 p-3 rounded-lg mt-1">
+                    <ChartBarIcon className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Dashboard Financeiro Completo</h3>
+                    <p className="text-gray-400 leading-relaxed">Faturamento, custos, lucro e margem em tempo real.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-gray-900 p-3 rounded-lg mt-1">
+                    <ChartBarIcon className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Análise de Crescimento</h3>
+                    <p className="text-gray-400 leading-relaxed">Comparativos ano a ano com insights automáticos.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-gray-900 p-3 rounded-lg mt-1">
+                    <ChartBarIcon className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Performance Mensal Detalhada</h3>
+                    <p className="text-gray-400 leading-relaxed">Identifique tendências e otimize resultados.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-gray-900 p-3 rounded-lg mt-1">
+                    <ChartBarIcon className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Rentabilidade por Procedimento</h3>
+                    <p className="text-gray-400 leading-relaxed">Lucro real incluindo custos operacionais.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Dashboard Mockup */}
+            <div className="relative">
+              <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xl font-semibold text-white">Dashboard Financeiro</h4>
+                    <span className="text-sm text-gray-400">Novembro 2024</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-gray-800 p-6 rounded-xl">
+                      <div className="text-3xl font-bold text-white mb-1">R$ 47.2K</div>
+                      <div className="text-sm text-gray-400">Faturamento</div>
+                      <div className="text-green-400 text-sm mt-2">+18% vs mês anterior</div>
+                    </div>
+                    <div className="bg-gray-800 p-6 rounded-xl">
+                      <div className="text-3xl font-bold text-white mb-1">72%</div>
+                      <div className="text-sm text-gray-400">Margem de Lucro</div>
+                      <div className="text-blue-400 text-sm mt-2">Acima da meta</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h5 className="text-white font-medium">Procedimentos Mais Lucrativos</h5>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-300">Harmonização Facial</span>
+                        <span className="text-white font-medium">R$ 12.8K</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-300">Preenchimento Labial</span>
+                        <span className="text-white font-medium">R$ 8.4K</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-300">Toxina Botulínica</span>
+                        <span className="text-white font-medium">R$ 6.2K</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 2: CRM INTERATIVO */}
+      <section className="relative z-10 py-32 px-8 bg-gray-900/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">
+              CRM que{" "}
+              <span className="text-blue-500">trabalha por você</span>
+            </h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+              Nunca mais deixe um paciente escapar. Nosso sistema inteligente cuida dos relacionamentos enquanto você foca nos procedimentos.
+            </p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-16">
+            <div className="bg-gray-900 rounded-lg p-2 border border-gray-800">
+              {Object.entries(TABS_DATA).map(([key, tab]) => (
+                <button
+                  key={key}
+                  onClick={() => handleTabChange(key as 'alertas' | 'fidelidade' | 'galeria')}
+                  className={`px-6 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === key 
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {tab.title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <div className="space-y-8">
+              <h3 className="text-3xl font-bold text-white">
+                {TABS_DATA[activeTab].title}
+              </h3>
+              <p className="text-lg text-gray-300 leading-relaxed">
+                {TABS_DATA[activeTab].description}
+              </p>
+              <ul className="space-y-4">
+                {TABS_DATA[activeTab].features.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-gray-300">{feature}</span>
+                  </li>
                 ))}
               </ul>
-              <a href="#" className={`w-full py-3 rounded-xl text-center font-bold text-lg shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 ${item.highlight ? 'bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 text-white hover:from-indigo-600 hover:to-pink-600' : 'bg-white/20 text-white hover:bg-white/30'}`}>{item.cta}</a>
             </div>
-          ))}
+
+            {/* Dynamic Mockup */}
+            <div className="relative">
+              <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+                {activeTab === 'alertas' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <BellIcon className="h-6 w-6 text-blue-500" />
+                      <h4 className="text-xl font-semibold text-white">Alertas de Renovação</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                            <span className="text-red-400 text-sm">!</span>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">Maria Silva</div>
+                            <div className="text-red-400 text-sm">Harmonização vence em 3 dias</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                            <span className="text-yellow-400 text-sm">⚠</span>
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">João Santos</div>
+                            <div className="text-yellow-400 text-sm">Retorno previsto para próxima semana</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'fidelidade' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <HeartIcon className="h-6 w-6 text-blue-500" />
+                      <h4 className="text-xl font-semibold text-white">Índice de Fidelidade</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-300">Ana Costa</span>
+                          <span className="text-green-400 font-medium">96%</span>
+                        </div>
+                        <div className="w-full bg-gray-800 rounded-full h-2">
+                          <div className="bg-green-400 h-2 rounded-full" style={{width: '96%'}}></div>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-300">Carlos Lima</span>
+                          <span className="text-blue-400 font-medium">84%</span>
+                        </div>
+                        <div className="w-full bg-gray-800 rounded-full h-2">
+                          <div className="bg-blue-400 h-2 rounded-full" style={{width: '84%'}}></div>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-300">Marina Silva</span>
+                          <span className="text-yellow-400 font-medium">67%</span>
+                        </div>
+                        <div className="w-full bg-gray-800 rounded-full h-2">
+                          <div className="bg-yellow-400 h-2 rounded-full" style={{width: '67%'}}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'galeria' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <CameraIcon className="h-6 w-6 text-blue-500" />
+                      <h4 className="text-xl font-semibold text-white">Galeria Visual</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="bg-gray-800 rounded-lg h-24 flex items-center justify-center">
+                          <span className="text-gray-400 text-sm">Antes</span>
+                        </div>
+                        <div className="text-center text-xs text-gray-400">15/11/2024</div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="bg-blue-500/20 rounded-lg h-24 flex items-center justify-center border border-blue-500/30">
+                          <span className="text-blue-400 text-sm">Depois</span>
+                        </div>
+                        <div className="text-center text-xs text-gray-400">22/11/2024</div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3 text-center">
+                      <span className="text-gray-300 text-sm">Harmonização Facial - Ana Costa</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* DEPOIMENTOS - Carrossel simples com microinteração */}
-      <section id="depoimentos" className="relative z-10 max-w-6xl mx-auto px-4 py-20">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-12 tracking-tight animate-fade-in">
-          O que dizem nossos clientes
+      {/* SEÇÃO 3: PRODUTIVIDADE */}
+      <section className="relative z-10 py-32 px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">
+              Produtividade que{" "}
+              <span className="text-blue-500">devolve seu tempo</span>
         </h2>
-        <Suspense fallback={<div className="text-center text-white/80 py-12">Carregando depoimentos...</div>}>
-          <DepoimentosCarousel />
-        </Suspense>
-      </section>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+              Recupere horas, não minutos. Automatize tarefas repetitivas e organize seu dia para focar no que realmente importa.
+            </p>
+          </div>
 
-      {/* CTA FINAL */}
-      <section id="contato" className="relative z-10 flex flex-col items-center justify-center py-24 px-4 mt-12">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-white text-center mb-8 tracking-tight animate-fade-in">
-          Pronto para <span className="bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">Revolucionar</span> sua Clínica?
-        </h2>
-        <p className="text-lg md:text-xl text-slate-200 text-center max-w-2xl mb-8 animate-fade-in">
-          Junte-se a mais de <span className="text-fuchsia-300 font-bold">1.000 profissionais</span> que já transformaram seus negócios
-        </p>
-        <div className="flex flex-col items-center gap-4 mb-6 animate-fade-in">
-          <a href="#planos" className="px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 text-white font-bold text-lg shadow-xl hover:from-indigo-600 hover:to-pink-600 hover:scale-[1.08] active:scale-95 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 flex items-center gap-2">
-            Solicitar Demonstração <span className="text-2xl">→</span>
-          </a>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <div className="group bg-gray-900 rounded-2xl p-8 border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-gray-900/50">
+              <div className="bg-gray-800 p-4 rounded-lg w-fit mb-6 group-hover:bg-blue-900/50 transition-colors duration-300">
+                <CalendarDaysIcon className="h-8 w-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4 group-hover:text-blue-200 transition-colors duration-300">Agenda Inteligente</h3>
+              <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
+                Organize horários com categorias visuais: Procedimentos, Retornos e Compromissos Pessoais.
+              </p>
+            </div>
+
+            <div className="group bg-gray-900 rounded-2xl p-8 border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-gray-900/50">
+              <div className="bg-gray-800 p-4 rounded-lg w-fit mb-6 group-hover:bg-green-900/50 transition-colors duration-300">
+                <CurrencyDollarIcon className="h-8 w-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4 group-hover:text-green-200 transition-colors duration-300">Tabela de Valores</h3>
+              <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
+                Centralize preços com opções de pagamento personalizadas: PIX, cartão e parcelamentos.
+              </p>
+            </div>
+
+            <div className="group bg-gray-900 rounded-2xl p-8 border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-gray-900/50">
+              <div className="bg-gray-800 p-4 rounded-lg w-fit mb-6 group-hover:bg-purple-900/50 transition-colors duration-300">
+                <FolderIcon className="h-8 w-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4 group-hover:text-purple-200 transition-colors duration-300">Biblioteca de Documentos</h3>
+              <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
+                Templates de formulários, termos de consentimento e orientações organizados e acessíveis.
+              </p>
+            </div>
+
+            <div className="group bg-gray-900 rounded-2xl p-8 border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-gray-900/50">
+              <div className="bg-gray-800 p-4 rounded-lg w-fit mb-6 group-hover:bg-orange-900/50 transition-colors duration-300">
+                <ClipboardDocumentListIcon className="h-8 w-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-4 group-hover:text-orange-200 transition-colors duration-300">Gestão de Tarefas</h3>
+              <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors duration-300">
+                To-do list integrado para não esquecer pendências e manter sua rotina sempre organizada.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* RODAPÉ */}
-      <footer className="relative z-10 w-full py-10 flex flex-col items-center justify-center text-slate-400 text-base opacity-80">
-        <span>© {new Date().getFullYear()} FaceMind. Todos os direitos reservados.</span>
+      {/* PREÇOS MINIMALISTAS */}
+      <section id="precos" className="relative z-10 py-32 px-8 bg-gray-900/30">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">
+              Preços{" "}
+              <span className="text-blue-500">transparentes</span>
+        </h2>
+            <p className="text-xl text-gray-300 leading-relaxed font-light">
+              Comece grátis. Escale conforme cresce.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Plano Essencial */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8">
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold text-white mb-4">Essencial</h3>
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-5xl font-bold text-white">R$ 79</span>
+                  <span className="text-gray-400 font-light">/mês</span>
+                </div>
+                <p className="text-gray-400 leading-relaxed">Ideal para começar sua transformação digital</p>
+              </div>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Até 50 pacientes',
+                  'Dashboard financeiro básico', 
+                  'Galeria de fotos organizada',
+                  'Agenda inteligente',
+                  'Suporte por email'
+          ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                    <span className="text-gray-300">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <button className="w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-lg font-medium transition-all duration-200">
+                Começar Grátis
+              </button>
+            </div>
+            
+            {/* Plano Profissional */}
+            <div className="bg-blue-500 rounded-2xl p-8 relative text-white">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                <span className="bg-white text-blue-500 px-4 py-2 rounded-full text-sm font-medium">
+                  Recomendado
+                </span>
+              </div>
+              
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-4">Profissional</h3>
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-5xl font-bold">R$ 149</span>
+                  <span className="text-blue-100 font-light">/mês</span>
+                </div>
+                <p className="text-blue-100 leading-relaxed">Para clínicas que querem crescer</p>
+              </div>
+              
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Pacientes ilimitados',
+                  'Todos os dashboards avançados',
+                  'Alertas proativos automáticos',
+                  'Índice de fidelidade exclusivo',
+                  'Suporte prioritário via WhatsApp',
+                  'Biblioteca completa de documentos'
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-white"></div>
+                    <span className="text-blue-50">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <button className="w-full bg-white text-blue-500 hover:bg-gray-50 py-4 rounded-lg font-medium transition-all duration-200">
+                Começar Agora
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA FINAL MINIMALISTA */}
+      <section className="relative z-10 py-32 px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-5xl md:text-6xl font-bold text-white mb-8 leading-tight">
+            Pronto para{" "}
+            <span className="text-blue-500">transformar sua clínica?</span>
+        </h2>
+          <p className="text-xl text-gray-300 mb-16 leading-relaxed font-light">
+            Teste gratuitamente por 14 dias. Sem cartão de crédito.
+          </p>
+          
+          <button className="bg-blue-500 hover:bg-blue-600 text-white px-12 py-6 rounded-lg text-xl font-medium transition-all duration-200 hover:scale-105">
+            Começar Teste Gratuito
+          </button>
+        </div>
+      </section>
+
+      {/* FOOTER ULTRA MINIMAL */}
+      <footer className="relative z-10 border-t border-gray-800 py-16 px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div className="flex items-center gap-4 mb-8 md:mb-0">
+              <Image src="/logo.png" alt="FaceMind" width={100} height={26} className="h-6 w-auto" />
+              <span className="text-gray-500 text-sm">© 2024 FaceMind</span>
+            </div>
+            
+            <div className="flex items-center gap-8 text-sm text-gray-500">
+              <a href="#" className="hover:text-white transition-colors duration-200">Privacidade</a>
+              <a href="#" className="hover:text-white transition-colors duration-200">Termos</a>
+              <a href="#" className="hover:text-white transition-colors duration-200">Suporte</a>
+            </div>
+          </div>
+        </div>
       </footer>
 
-      <style jsx>{`
-        .bg-gradient-radial {
-          background: radial-gradient(circle, var(--tw-gradient-stops));
-        }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(24px); }
-          to { opacity: 1; transform: none; }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.7s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes fade-in-header {
-          from { opacity: 0; transform: translateY(-24px); }
-          to { opacity: 1; transform: none; }
-        }
-        .animate-fade-in-header {
-          animation: fade-in-header 0.8s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes bounce-in {
-          0% { transform: scale(0.8); opacity: 0; }
-          60% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-bounce-in {
-          animation: bounce-in 1s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(40px); }
-          to { opacity: 1; transform: none; }
-        }
-        .animate-slide-up {
-          animation: slide-up 1s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes spotlight {
-          0%, 100% { filter: blur(60px) brightness(1); }
-          50% { filter: blur(80px) brightness(1.2); }
-        }
-        .animate-spotlight {
-          animation: spotlight 8s ease-in-out infinite;
-        }
-        @keyframes spotlight2 {
-          0%, 100% { filter: blur(32px) brightness(1); }
-          50% { filter: blur(48px) brightness(1.2); }
-        }
-        .animate-spotlight2 {
-          animation: spotlight2 10s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
-}
+});
+
+export default LandingPage;
