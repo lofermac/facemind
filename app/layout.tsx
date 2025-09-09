@@ -24,6 +24,7 @@ export default function RootLayout({
   const [isLoading, setIsLoading] = useState(true);
   const pathname = usePathname();
   const isLoginPage = pathname === '/profissionais/login';
+  const isCadastroPage = pathname === '/cadastro';
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -50,7 +51,7 @@ export default function RootLayout({
   }, [pathname]);
 
   useEffect(() => {
-    if (!isLoading && !session && pathname !== '/profissionais/login' && pathname !== '/') {
+    if (!isLoading && !session && pathname !== '/profissionais/login' && pathname !== '/' && pathname !== '/cadastro') {
       window.location.href = '/profissionais/login'; // Redireciona para a tela de login
     }
   }, [isLoading, session, pathname]);
@@ -80,22 +81,23 @@ export default function RootLayout({
         <meta name="theme-color" content="#3B82F6" />
       </head>
       {/* ✨ GARANTA QUE ESTA CLASSE ESTÁ AQUI E É CLARA ✨ */}
-      <body className="bg-slate-100 antialiased"> 
-        {!isLoginPage && !isLoading && pathname !== '/' ? (
-          session ? (
-            <>
-        <Header />
-        <MainMenuTabs />
-            </>
-          ) : (
-            <div className="flex justify-center items-center min-h-screen">
-              <p className="text-lg text-gray-700">Redirecionando para login...</p>
-            </div>
-          )
-        ) : null}
-        <main className="pb-20 md:pb-0">{children}</main>
-        <MobileBottomNav />
+      <body className="bg-slate-100 antialiased">
         <Toaster richColors position="top-right" closeButton />
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-screen">
+            {/* Você pode adicionar um spinner ou loader aqui */}
+          </div>
+        ) : session && !isLoginPage && !isCadastroPage && pathname !== '/' ? (
+          <>
+            <Header />
+            <MainMenuTabs />
+            <main className="pb-20 md:pb-0">{children}</main>
+            <MobileBottomNav />
+          </>
+        ) : (
+          <main>{children}</main>
+        )}
       </body>
     </html>
   );
