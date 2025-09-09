@@ -493,22 +493,36 @@ export default function DashboardPage() {
       .gte('data', hoje.toISOString().slice(0, 10))
       .order('data', { ascending: true })
       .order('hora', { ascending: true });
+    
     if (error || !Array.isArray(ags)) {
+      console.log('Erro ao buscar próximos atendimentos:', error);
       setProximosAtendimentos([]);
       return;
     }
+    
+    // Filtrar duplicatas de agendamentos baseadas em data, hora e paciente_id
+    const agendamentosUnicos = ags.filter((agendamento, index, self) => 
+      index === self.findIndex((a) => 
+        a.data === agendamento.data && 
+        a.hora === agendamento.hora && 
+        a.paciente_id === agendamento.paciente_id
+      )
+    );
+    
     // Buscar nomes dos pacientes (excluir inativos)
     const { data: pacientes } = await supabase
       .from('pacientes')
       .select('id, nome, status')
       .neq('status', 'Inativo');
+    
     const pacientesMap: Record<string, string> = {};
     if (Array.isArray(pacientes)) {
       pacientes.forEach(p => { pacientesMap[p.id] = p.nome; });
     }
+    
     // Montar lista final - filtrar agendamentos de pacientes inativos
-    const atendimentos: ProximoAtendimento[] = ags
-      .filter(a => pacientesMap[a.paciente_id]) // Só incluir se paciente não for inativo
+    const atendimentos: ProximoAtendimento[] = agendamentosUnicos
+      .filter(a => a.data && a.hora && pacientesMap[a.paciente_id]) // Validar dados e paciente ativo
       .map(a => ({
         id: a.id,
         paciente: pacientesMap[a.paciente_id],
@@ -516,6 +530,8 @@ export default function DashboardPage() {
         hora: a.hora,
         rotulo: a.rotulo || '',
       }));
+      
+    console.log('Próximos atendimentos processados:', atendimentos); // debug
     setProximosAtendimentos(atendimentos);
   }, []);
 

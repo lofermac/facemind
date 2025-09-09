@@ -142,6 +142,30 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
           setErroRotulo('');
           setLoading(true);
           let error;
+          
+          // Validar se paciente existe
+          if (!pacienteSelecionado) {
+            setLoading(false);
+            alert('Por favor, selecione um paciente.');
+            return;
+          }
+          
+          // Verificar se já existe agendamento no mesmo horário (apenas para novos agendamentos)
+          if (!agendamentoEditavel) {
+            const { data: existingAppointments } = await supabase
+              .from('agendamentos')
+              .select('id')
+              .eq('data', dataLocal)
+              .eq('hora', formatHora(horaMinutos))
+              .eq('paciente_id', pacienteSelecionado);
+              
+            if (existingAppointments && existingAppointments.length > 0) {
+              setLoading(false);
+              alert('Já existe um agendamento para este paciente neste horário.');
+              return;
+            }
+          }
+          
           if (agendamentoEditavel) {
             // Modo edição - atualizar agendamento existente
             const result = await supabase.from('agendamentos')
@@ -397,17 +421,37 @@ function AgendaPageContent() {
     const dataInicio = new Date(current);
     dataInicio.setDate(1);
     const dataFim = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+    
     const { data, error } = await supabase
       .from('agendamentos')
       .select('id, paciente_id, data, hora, duracao_min, observacao, rotulo, enviar_whatsapp')
       .gte('data', dataInicio.toISOString().slice(0, 10))
-      .lte('data', dataFim.toISOString().slice(0, 10));
-    if (!error && Array.isArray(data)) setAgendamentos(data as Agendamento[]);
-    console.log('Agendamentos:', data); // debug
-    // Buscar nomes dos pacientes
+      .lte('data', dataFim.toISOString().slice(0, 10))
+      .order('data', { ascending: true })
+      .order('hora', { ascending: true });
+    
+    if (!error && Array.isArray(data)) {
+      // Filtrar duplicatas baseadas em data, hora e paciente_id
+      const agendamentosUnicos = data.filter((agendamento, index, self) => 
+        index === self.findIndex((a) => 
+          a.data === agendamento.data && 
+          a.hora === agendamento.hora && 
+          a.paciente_id === agendamento.paciente_id
+        )
+      );
+      setAgendamentos(agendamentosUnicos as Agendamento[]);
+      console.log('Agendamentos únicos:', agendamentosUnicos); // debug
+    } else {
+      setAgendamentos([]);
+      console.log('Erro ao buscar agendamentos:', error);
+    }
+    
+    // Buscar nomes dos pacientes (apenas pacientes ativos)
     const { data: pacientes } = await supabase
       .from('pacientes')
-      .select('id, nome');
+      .select('id, nome, status')
+      .neq('status', 'Inativo');
+    
     if (Array.isArray(pacientes)) {
       const map: { [id: string]: string } = {};
       pacientes.forEach(p => { map[p.id] = p.nome; });
@@ -478,8 +522,12 @@ function AgendaPageContent() {
                   if (isClickable && typeof day === 'number') {
                     dayDate = new Date(current.getFullYear(), current.getMonth(), day);
                     ags = agendamentos.filter(a => {
-                      const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
-                      const dataDia = dayDate!.toISOString().slice(0, 10);
+                      // Garantir comparação correta de datas sem problemas de fuso horário
+                      if (!a.data) return false;
+                      
+                      const dataAg = typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10);
+                      const dataDia = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      
                       return dataAg === dataDia;
                     });
                   }
@@ -557,13 +605,14 @@ function AgendaPageContent() {
                     const isPast = d < now && !isToday;
                     
                     // Verificar se este horário está ocupado por algum agendamento
-                    const dataSlot = d.toISOString().slice(0, 10);
+                    const dataSlot = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                     const horaSlot = hour * 60; // minutos desde 00:00
                     const horaSlotFim = (hour + 1) * 60; // fim desta hora
                     
                     const agendamentosNoDia = agendamentos.filter(a => {
-                      const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
-                      return dataAg === dataSlot && a.hora;
+                      if (!a.data || !a.hora) return false;
+                      const dataAg = typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10);
+                      return dataAg === dataSlot;
                     });
                     
                     // Verificar se algum agendamento intersecta com esta hora
@@ -623,10 +672,11 @@ function AgendaPageContent() {
               
               {/* Renderizar agendamentos em uma camada separada */}
               {getWeekDays(current).map((d, dayIndex) => {
-                const dataDia = d.toISOString().slice(0, 10);
+                const dataDia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 const agsDay = agendamentos.filter(a => {
-                  const dataAg = (typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10));
-                  return dataAg === dataDia && a.hora;
+                  if (!a.data || !a.hora) return false;
+                  const dataAg = typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10);
+                  return dataAg === dataDia;
                 });
 
                 return agsDay.map(a => {

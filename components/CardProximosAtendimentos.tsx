@@ -35,9 +35,11 @@ export default function CardProximosAtendimentos({
       </div>
       <div className="mt-3 flow-root">
         <ul role="list" className="-my-1 divide-y divide-gray-100 max-h-[350px] overflow-y-auto pr-1">
-          {atendimentos.map((a, index) => (
+          {atendimentos
+            .filter(a => a.paciente && a.data && a.hora) // Filtrar apenas atendimentos com dados válidos
+            .map((a, index) => (
             <li
-              key={a.id + a.data + a.hora}
+              key={`${a.id}-${a.data}-${a.hora}`}
               className="flex flex-row items-center justify-between py-2 rounded-md cursor-pointer hover:bg-slate-50 px-2 gap-2"
               onClick={() => router.push(`/agenda?date=${a.data}`)}
               role="button"
@@ -57,15 +59,19 @@ export default function CardProximosAtendimentos({
                     ${!['Procedimento','Retorno','Pessoal'].includes(a.rotulo || '') ? 'text-slate-500' : ''}
                   `}
                 >
-                  {a.rotulo}
+                  {a.rotulo || 'Sem categoria'}
                 </span>
               </div>
               {/* Bloco 2: Data DD/MM */}
               <div className="flex flex-col items-center w-14">
                 <span className="text-sm font-bold text-slate-700">
                   {(() => {
-                    const [ano, mes, dia] = a.data.split('-');
-                    return `${dia}/${mes}`;
+                    try {
+                      const [ano, mes, dia] = a.data.split('-');
+                      return `${dia}/${mes}`;
+                    } catch {
+                      return 'N/A';
+                    }
                   })()}
                 </span>
               </div>
@@ -73,21 +79,27 @@ export default function CardProximosAtendimentos({
               <div className="flex flex-col items-center w-16">
                 <span className="text-xs font-semibold text-slate-500">
                   {(() => {
-                    const [ano, mes, dia] = a.data.split('-');
-                    const dataObj = new Date(Number(ano), Number(mes) - 1, Number(dia));
-                    const diasSemana = [
-                      'Dom', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
-                    ];
-                    return diasSemana[dataObj.getDay()];
+                    try {
+                      const [ano, mes, dia] = a.data.split('-');
+                      const dataObj = new Date(Number(ano), Number(mes) - 1, Number(dia));
+                      const diasSemana = [
+                        'Dom', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'
+                      ];
+                      return diasSemana[dataObj.getDay()];
+                    } catch {
+                      return 'N/A';
+                    }
                   })()}
                 </span>
               </div>
               {/* Bloco 4: Horário */}
               <div className="flex flex-col items-center w-14">
-                <span className="text-sm font-semibold text-slate-700">{a.hora.slice(0,5)}</span>
+                <span className="text-sm font-semibold text-slate-700">
+                  {a.hora ? a.hora.slice(0,5) : 'N/A'}
+                </span>
               </div>
             </li>
-          ))}
+          ))}}
           {atendimentos.length === 0 && (
             <li className="text-sm text-gray-500 py-2">Nenhum atendimento agendado para este mês.</li>
           )}
