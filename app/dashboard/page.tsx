@@ -484,12 +484,21 @@ export default function DashboardPage() {
 
   // Buscar próximos atendimentos (todos os futuros)
   const fetchProximosAtendimentos = useCallback(async () => {
-    // Buscar todos os agendamentos futuros (sem limite de 7 dias)
+    // Buscar dados do usuário logado
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) {
+      console.log('Usuário não logado, não é possível buscar próximos atendimentos');
+      setProximosAtendimentos([]);
+      return;
+    }
+
+    // Buscar todos os agendamentos futuros FILTRADOS POR USUÁRIO
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const { data: ags, error } = await supabase
       .from('agendamentos')
-      .select('id, paciente_id, data, hora, rotulo')
+      .select('id, paciente_id, data, hora, rotulo, user_id')
+      .eq('user_id', user.id) // 🔥 FILTRO POR USUÁRIO ADICIONADO
       .gte('data', hoje.toISOString().slice(0, 10))
       .order('data', { ascending: true })
       .order('hora', { ascending: true });
@@ -531,7 +540,6 @@ export default function DashboardPage() {
         rotulo: a.rotulo || '',
       }));
       
-    console.log('Próximos atendimentos processados:', atendimentos); // debug
     setProximosAtendimentos(atendimentos);
   }, []);
 

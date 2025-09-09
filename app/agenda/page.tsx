@@ -41,7 +41,7 @@ function getWeekDays(date: Date) {
   });
 }
 
-function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agendamentoEditavel }: { open: boolean, onClose: () => void, data: string, hora: string, onAgendamentoSalvo: () => void, agendamentoEditavel?: any }) {
+function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agendamentoEditavel, user }: { open: boolean, onClose: () => void, data: string, hora: string, onAgendamentoSalvo: () => void, agendamentoEditavel?: any, user?: any }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [pacientes, setPacientes] = useState<{ id: string, nome: string }[]>([]);
   const [pacienteSelecionado, setPacienteSelecionado] = useState('');
@@ -190,6 +190,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
               observacao,
               enviar_whatsapp: enviarConfirmacao,
               rotulo,
+              user_id: user?.id, // 🔥 ASSOCIAR AGENDAMENTO AO USUÁRIO
             }]);
             error = result.error;
           }
@@ -369,6 +370,7 @@ interface Agendamento {
   observacao: string;
   rotulo: string;
   enviar_whatsapp: boolean | string;
+  user_id?: string;
 }
 
 function AgendaPageContent() {
@@ -387,6 +389,7 @@ function AgendaPageContent() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [pacientesMap, setPacientesMap] = useState<{ [id: string]: string }>({});
   const [agendamentoEditavel, setAgendamentoEditavel] = useState<Agendamento | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Função para abrir modal ao clicar em horário
   function handleAgendamentoClick(agendamento: Agendamento) {
@@ -417,14 +420,22 @@ function AgendaPageContent() {
 
   // Função para buscar agendamentos
   const fetchAgendamentos = async () => {
-    // Buscar agendamentos do mês/semana visível
+    // Verificar se usuário está logado
+    if (!user?.id) {
+      console.log('Usuário não logado, não é possível buscar agendamentos');
+      setAgendamentos([]);
+      return;
+    }
+
+    // Buscar agendamentos do mês/semana visível FILTRADOS POR USUÁRIO
     const dataInicio = new Date(current);
     dataInicio.setDate(1);
     const dataFim = new Date(current.getFullYear(), current.getMonth() + 1, 0);
     
     const { data, error } = await supabase
       .from('agendamentos')
-      .select('id, paciente_id, data, hora, duracao_min, observacao, rotulo, enviar_whatsapp')
+      .select('id, paciente_id, data, hora, duracao_min, observacao, rotulo, enviar_whatsapp, user_id')
+      .eq('user_id', user.id) // 🔥 FILTRO POR USUÁRIO ADICIONADO
       .gte('data', dataInicio.toISOString().slice(0, 10))
       .lte('data', dataFim.toISOString().slice(0, 10))
       .order('data', { ascending: true })
@@ -459,10 +470,21 @@ function AgendaPageContent() {
     }
   };
 
-  // Buscar agendamentos quando current muda
+  // Buscar dados do usuário logado
   useEffect(() => {
-    fetchAgendamentos();
-  }, [current]);
+    const getUser = async () => {
+      const { data: { user: userData } } = await supabase.auth.getUser();
+      setUser(userData);
+    };
+    getUser();
+  }, []);
+
+  // Buscar agendamentos quando current ou user muda
+  useEffect(() => {
+    if (user?.id) {
+      fetchAgendamentos();
+    }
+  }, [current, user]);
 
   // Renderização
   return (
@@ -478,17 +500,18 @@ function AgendaPageContent() {
         hora={modal.hora}
         onAgendamentoSalvo={() => { fetchAgendamentos(); }}
         agendamentoEditavel={agendamentoEditavel}
+        user={user}
       />
       <div className="bg-white rounded-xl shadow p-4 mb-8">
         {/* Header do calendário */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
-            <button onClick={goPrev} className="rounded-full p-2 hover:bg-slate-100 text-xl">&#8592;</button>
-            <span className="font-semibold text-lg">
+            <button onClick={goPrev} className="rounded-full p-2 hover:bg-slate-100 text-xl text-slate-500 hover:text-slate-800 transition-colors">&#8592;</button>
+            <span className="font-semibold text-lg text-slate-900">
               {current.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
             </span>
-            <button onClick={goNext} className="rounded-full p-2 hover:bg-slate-100 text-xl">&#8594;</button>
-            <button onClick={goToday} className="ml-2 px-2 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200">Hoje</button>
+            <button onClick={goNext} className="rounded-full p-2 hover:bg-slate-100 text-xl text-slate-500 hover:text-slate-800 transition-colors">&#8594;</button>
+            <button onClick={goToday} className="ml-2 px-3 py-1.5 text-sm rounded-lg bg-slate-200 text-slate-700 font-semibold hover:bg-slate-300 transition-colors">Hoje</button>
           </div>
           <div className="flex gap-2">
             <button

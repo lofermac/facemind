@@ -48,6 +48,14 @@ const PatientProfilePage = () => {
       if (!id) return;
       
       setLoading(true);
+      // Buscar dados do usuário logado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) {
+        setError('Usuário não logado');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: fetchError } = await supabase
         .from('pacientes')
         .select(`
@@ -64,14 +72,16 @@ const PatientProfilePage = () => {
               duracao_efeito_meses
             )
           ),
-          agendamentos (
+          agendamentos!inner (
             id,
             data,
             hora,
-            rotulo
+            rotulo,
+            user_id
           )
         `)
         .eq('id', id)
+        .eq('agendamentos.user_id', user.id) // 🔥 FILTRAR AGENDAMENTOS POR USUÁRIO
         .single();
 
       if (fetchError || !data) {
