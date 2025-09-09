@@ -21,6 +21,23 @@ body {
   cursor: auto;
 }
 
+/* Prevenir overflow horizontal em toda a aplicação */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Garantir que elementos não extrapolem a largura da tela */
+* {
+  box-sizing: border-box;
+}
+
+/* Prevenir que imagens causem overflow */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Font system para Landing Page - performance otimizada */
 .font-system {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;

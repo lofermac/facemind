@@ -73,6 +73,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <title>FaceMind</title>
         <meta name="description" content="Sistema de gestão para clínicas de estética" />
         <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />

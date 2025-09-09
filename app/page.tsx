@@ -66,17 +66,17 @@ const LandingPage = memo(function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gray-950 text-white font-system">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gray-950 text-white font-system">
       
       {/* HEADER ULTRA MINIMAL */}
-      <header className="fixed top-0 left-0 w-full z-50 bg-gray-950/95 backdrop-blur-xl border-b border-gray-800/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
+      <header className="fixed top-0 left-0 w-full z-50 bg-gray-950/90 backdrop-blur-xl border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between">
           <div className="flex-1 flex justify-start">
             {/* Espaço reservado para manter o equilíbrio, pode ser um botão de menu ou nada */}
           </div>
           
           <div className="flex-1 flex justify-center">
-            <Image src="/logo.png" alt="FaceMind" width={100} height={26} priority className="h-6 sm:h-7 w-auto" />
+            <Image src="/logo.png" alt="FaceMind" width={120} height={32} priority className="h-8 w-auto" />
           </div>
           
           <div className="flex-1 flex items-center justify-end gap-3 sm:gap-4">
