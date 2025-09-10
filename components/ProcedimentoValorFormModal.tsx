@@ -177,7 +177,7 @@ export default function ProcedimentoValorFormModal({
                 value={nomeProcedimento} 
                 onChange={(e) => setNomeProcedimento(e.target.value)} 
                 required
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" 
                 autoComplete="off" 
                 inputMode="text" 
                 placeholder="Ex: Aplicação de Toxina - Testa Completa" 
@@ -256,7 +256,7 @@ export default function ProcedimentoValorFormModal({
                 onChange={(e) => setDuracaoEfeitoMeses(e.target.value)}
                 min="0"
                 step="1"
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" 
                 inputMode="numeric" 
                 autoComplete="off" 
                 placeholder="Ex: 6"

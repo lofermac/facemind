@@ -72,7 +72,7 @@ const PatientProfilePage = () => {
               duracao_efeito_meses
             )
           ),
-          agendamentos!inner (
+          agendamentos (
             id,
             data,
             hora,
@@ -81,13 +81,18 @@ const PatientProfilePage = () => {
           )
         `)
         .eq('id', id)
-        .eq('agendamentos.user_id', user.id) // 🔥 FILTRAR AGENDAMENTOS POR USUÁRIO
+        .eq('user_id', user.id) // 🔥 FILTRAR PACIENTES POR USUÁRIO
         .single();
 
       if (fetchError || !data) {
         setError('Paciente não encontrado');
       } else {
-        setPaciente(data);
+        // Filtrar agendamentos apenas do usuário logado
+        const pacienteComAgendamentosFiltrados = {
+          ...data,
+          agendamentos: data.agendamentos?.filter((agendamento: any) => agendamento.user_id === user.id) || []
+        };
+        setPaciente(pacienteComAgendamentosFiltrados);
       }
       setLoading(false);
     }

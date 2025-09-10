@@ -129,7 +129,7 @@ export default function CategoriaFormModal({
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
               placeholder="Ex: Preenchimentos"
             />
           </div>
@@ -143,7 +143,7 @@ export default function CategoriaFormModal({
               rows={3}
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
               placeholder="Detalhes sobre a categoria..."
             ></textarea>
           </div>

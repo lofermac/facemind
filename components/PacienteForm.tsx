@@ -237,7 +237,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           required
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
         />
       </div>
 
@@ -252,7 +252,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
             onAccept={(value: any) => setCpf(value)}
             name="cpf"
             id="cpf"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
             placeholder="000.000.000-00"
           />
         </div>
@@ -266,7 +266,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
             onAccept={(value: any) => setWhatsapp(value)}
             name="whatsapp"
             id="whatsapp"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
             placeholder="(00) 00000-0000"
           />
         </div>
@@ -283,7 +283,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
             onAccept={(value: any) => setDataNascimento(value)}
             name="dataNascimento"
             id="dataNascimento"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
             placeholder="DD/MM/AAAA"
           />
         </div>
@@ -297,7 +297,7 @@ export default function PacienteForm({ pacienteInicial, onFormSubmit, onCancel }
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
             placeholder="exemplo@email.com"
           />
         </div>

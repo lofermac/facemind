@@ -165,7 +165,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
             <div>
               <label htmlFor="nome" className="block text-sm font-medium text-gray-700">Nome <span className="text-red-500">*</span></label>
               <input type="text" name="nome" id="nome" value={nome} onChange={(e) => setNome(e.target.value)} required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm text-gray-900"
                 autoComplete="name" inputMode="text"
                 placeholder="Nome completo" />
             </div>
@@ -174,7 +174,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
               <IMaskInput
                 mask="000.000.000-00" value={cpf} onAccept={(value: any) => setCpf(value)} required
                 name="cpf" id="cpf"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
                 placeholder="000.000.000-00"
               />
             </div>
@@ -185,7 +185,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
               <IMaskInput
                 mask="00/00/0000" value={dataNascimento} onAccept={(value: any) => setDataNascimento(value)} required
                 name="dataNascimento" id="dataNascimento"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
                 placeholder="dd/mm/aaaa"
               />
             </div>
@@ -194,7 +194,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
               <IMaskInput
                 mask="(00) 00000-0000" value={whatsapp} onAccept={(value: any) => setWhatsapp(value)}
                 name="whatsapp" id="whatsapp"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -225,7 +225,7 @@ export default function PatientFormModal({ isOpen, onClose, onPatientSaved, paci
              <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
                 <select id="status" name="status" value={status} onChange={(e) => setStatus(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900">
                 <option value="Ativo">Ativo</option>
                 <option value="Inativo">Inativo</option>
                 </select>

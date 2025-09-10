@@ -577,7 +577,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
             <label htmlFor="dataProcedimento" className="block text-sm font-medium text-gray-700">Data do Procedimento <span className="text-red-500">*</span></label>
             <IMaskInput mask="00/00/0000" value={dataProcedimentoMask} onAccept={(value: any) => setDataProcedimentoMask(value)} required
               name="dataProcedimento" id="dataProcedimento"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-900"
               placeholder="dd/mm/aaaa" />
           </div>
         </div>
@@ -601,7 +601,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 required
                 name="valorCobrado"
                 id="valorCobrado"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none text-gray-900"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0,00"
@@ -626,7 +626,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 onComplete={(value: any) => setCustoProduto(value)}
                 name="custoProduto"
                 id="custoProduto"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none text-gray-900"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0,00"
@@ -651,7 +651,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 onComplete={(value: any) => setCustoInsumos(value)}
                 name="custoInsumos"
                 id="custoInsumos"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none text-gray-900"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0,00"
@@ -676,7 +676,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
                 onComplete={(value: any) => setCustoSala(value)}
                 name="custoSala"
                 id="custoSala"
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm appearance-none text-gray-900"
                 inputMode="decimal"
                 autoComplete="off"
                 placeholder="0,00"
@@ -693,7 +693,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
         <div>
           <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700">Observações</label>
           <textarea id="observacoes" name="observacoes" rows={4} value={observacoes} onChange={(e) => setObservacoes(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px]"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px] text-gray-900"
             placeholder="Comentários"></textarea>
         </div>
 
