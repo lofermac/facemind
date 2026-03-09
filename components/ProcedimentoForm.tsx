@@ -8,6 +8,7 @@ import { supabase } from '@/utils/supabaseClient';
 import { IMaskInput } from 'react-imask';
 import { toast } from 'sonner';
 import ImageModal from './ImageModal';
+import FaceProcedureMap, { FaceMapData } from './procedimentos/FaceProcedureMap';
 import type { Categoria } from '@/app/tabela-valores/page'; 
 import type { ProcedimentoValor } from '@/app/tabela-valores/[categoriaId]/page'; 
 
@@ -44,6 +45,45 @@ const NOME_DO_BUCKET = 'fotos-procedimentos';
 const THUMB_W: number = 150;
 const THUMB_H: number = 150;
 const THUMB_RESIZE: string = 'cover';
+const MAPA_FACIAL_REGEX = /\[MAPA_FACIAL\]([\s\S]*?)\[\/MAPA_FACIAL\]/m;
+
+function sanitizeFaceMap(data: FaceMapData): FaceMapData {
+  return Object.fromEntries(
+    Object.entries(data).filter(([, value]) => {
+      const feito = value?.feito?.trim() ?? '';
+      const produto = value?.produto?.trim() ?? '';
+      return feito.length > 0 || produto.length > 0;
+    })
+  ) as FaceMapData;
+}
+
+function parseObservacoesComMapa(observacaoOriginal: string | null | undefined): { textoLivre: string; mapa: FaceMapData } {
+  if (!observacaoOriginal) return { textoLivre: '', mapa: {} };
+  const match = observacaoOriginal.match(MAPA_FACIAL_REGEX);
+  if (!match?.[1]) {
+    return { textoLivre: observacaoOriginal, mapa: {} };
+  }
+
+  let parsedMap: FaceMapData = {};
+  try {
+    parsedMap = JSON.parse(match[1].trim()) as FaceMapData;
+  } catch {
+    parsedMap = {};
+  }
+
+  const textoLivre = observacaoOriginal.replace(MAPA_FACIAL_REGEX, '').trim();
+  return { textoLivre, mapa: sanitizeFaceMap(parsedMap) };
+}
+
+function composeObservacoesComMapa(textoLivre: string, mapa: FaceMapData): string | null {
+  const texto = textoLivre.trim();
+  const mapaLimpo = sanitizeFaceMap(mapa);
+  const temMapa = Object.keys(mapaLimpo).length > 0;
+  if (!temMapa) return texto || null;
+
+  const blocoMapa = `[MAPA_FACIAL]\n${JSON.stringify(mapaLimpo, null, 2)}\n[/MAPA_FACIAL]`;
+  return texto ? `${texto}\n\n${blocoMapa}` : blocoMapa;
+}
 
 export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel }: ProcedimentoFormProps) {
   const [pacientes, setPacientes] = useState<PacienteSelecao[]>([]); 
@@ -60,6 +100,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
   const [custoInsumos, setCustoInsumos] = useState<string>('');
   const [custoSala, setCustoSala] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
+  const [mapaFacial, setMapaFacial] = useState<FaceMapData>({});
   const [arquivosAntes, setArquivosAntes] = useState<FileList | null>(null);
   const [arquivosDepois, setArquivosDepois] = useState<FileList | null>(null);
   const [urlsFotosAntesExistentes, setUrlsFotosAntesExistentes] = useState<string[]>([]);
@@ -175,11 +216,19 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       setCustoProduto(procedimentoInicial.custo_produto ? procedimentoInicial.custo_produto.toFixed(2).replace('.', ',') : '');
       setCustoInsumos(procedimentoInicial.custo_insumos ? procedimentoInicial.custo_insumos.toFixed(2).replace('.', ',') : '');
       setCustoSala(procedimentoInicial.custo_sala ? procedimentoInicial.custo_sala.toFixed(2).replace('.', ',') : '');
-      setObservacoes(procedimentoInicial.observacoes || '');
+      const { textoLivre, mapa } = parseObservacoesComMapa(procedimentoInicial.observacoes || '');
+      setObservacoes(textoLivre);
+      setMapaFacial(mapa);
       setUrlsFotosAntesExistentes(procedimentoInicial.fotos_antes_urls || []);
       setUrlsFotosDepoisExistentes(procedimentoInicial.fotos_depois_urls || []);
     }
   }, [isEditMode, procedimentoInicial, listaCategoriasTV, listaProcedimentosTV]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setMapaFacial({});
+    }
+  }, [isEditMode]);
 
   // Pré-seleção robusta do procedimento por ID (fallback por nome)
   useEffect(() => {
@@ -343,6 +392,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
 
     // No handleSubmit, ajustar parseFloat para aceitar vírgula e remover separador de milhar
     const parseMonetario = (valor: string) => parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0;
+    const observacoesComMapa = composeObservacoesComMapa(observacoes, mapaFacial);
     const dadosParaSalvar: Omit<ProcedimentoRealizadoExistente, 'id' | 'created_at' | 'procedimento_nome'> = {
       paciente_id: pacienteIdSelecionado,
       categoria_nome: categoriaNomeSelecionado.trim(),
@@ -352,7 +402,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       custo_produto: parseMonetario(custoProduto),
       custo_insumos: parseMonetario(custoInsumos),
       custo_sala: parseMonetario(custoSala),
-      observacoes: observacoes.trim() || null,
+      observacoes: observacoesComMapa,
       fotos_antes_urls: fotosAntesFinal,
       fotos_depois_urls: fotosDepoisFinal,
       user_id: user.id
@@ -376,6 +426,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
     } else {
       toast.success(`Procedimento ${isEditMode ? 'atualizado' : 'cadastrado'} com sucesso!`);
       if (!isEditMode) { /* ... (reset igual) ... */ }
+      setMapaFacial({});
       setArquivosAntes(null); setArquivosDepois(null);
       const inputAntes = document.getElementById('fotos_antes') as HTMLInputElement;
       if (inputAntes) inputAntes.value = '';
@@ -387,7 +438,7 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
       pacienteIdSelecionado, categoriaTVSelId, procedimentoTVSelId,
       categoriaNomeSelecionado, procedimentoNomeSelecionado,
       dataProcedimentoMask, valorCobrado,
-      custoProduto, custoInsumos, custoSala, observacoes,
+      custoProduto, custoInsumos, custoSala, observacoes, mapaFacial,
       arquivosAntes, arquivosDepois,
       urlsFotosAntesExistentes, urlsFotosDepoisExistentes,
       isEditMode, procedimentoInicial, onSave
@@ -696,6 +747,8 @@ export default function ProcedimentoForm({ procedimentoInicial, onSave, onCancel
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-base md:text-sm resize-y min-h-[56px] md:min-h-[40px] text-gray-900"
             placeholder="Comentários"></textarea>
         </div>
+
+        <FaceProcedureMap value={mapaFacial} onChange={setMapaFacial} />
 
         {/* SEÇÃO DE FOTOS ATUALIZADA PARA EXIBIR MINIATURAS */}
         <div className="pt-4">

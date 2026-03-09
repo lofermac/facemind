@@ -12,7 +12,6 @@ interface ProcedimentoRealizado {
   id: string;
   data_procedimento: string | null;
   valor_cobrado: number | null;
-  observacoes?: string | null;
   procedimento_tabela_valores_id?: {
     nome_procedimento: string | null;
   } | null;
@@ -68,7 +67,6 @@ const PatientProfilePage = () => {
             custo_produto,
             custo_insumos,
             custo_sala,
-            observacoes,
             procedimento_tabela_valores_id (
               nome_procedimento,
               duracao_efeito_meses

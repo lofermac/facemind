@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { 
   ChartBarIcon, 
   ClipboardDocumentListIcon, 
-  CameraIcon, 
-  CalendarIcon, 
-  DocumentIcon, 
-  CurrencyDollarIcon 
+  DocumentIcon
 } from '@heroicons/react/24/outline';
 import TabelaDeProcedimentos from './pacientes/TabelaDeProcedimentos';
-import MapaFacialProcedimento from './pacientes/MapaFacialProcedimento';
 import PatientKPIs from './PatientKPIs';
 import DocumentosUpload from './DocumentosUpload';
 
@@ -16,7 +12,6 @@ interface ProcedimentoRealizado {
   id: string;
   data_procedimento: string | null;
   valor_cobrado: number | null;
-  observacoes?: string | null;
   procedimento_tabela_valores_id?: {
     nome_procedimento: string | null;
     duracao_efeito_meses?: number | null;
@@ -57,51 +52,6 @@ const tabs = [
 
 export default function ProfileTabs({ paciente }: ProfileTabsProps) {
   const [activeTab, setActiveTab] = useState('overview');
-
-  // Calcular KPIs para a aba Visão Geral
-  const calcularKPIs = () => {
-    const valorTotalGasto = paciente.procedimentos_realizados.reduce((total, proc) => {
-      return total + (proc.valor_cobrado || 0);
-    }, 0);
-
-    // Última visita (mais recente entre procedimentos e agendamentos passados)
-    const datasProcedimentos = paciente.procedimentos_realizados
-      .map(p => p.data_procedimento)
-      .filter(Boolean) as string[];
-    
-    const datasAgendamentos = paciente.agendamentos
-      .filter(a => a.data && new Date(a.data) <= new Date())
-      .map(a => a.data) as string[];
-
-    const todasDatas = [...datasProcedimentos, ...datasAgendamentos];
-    const ultimaVisita = todasDatas.length > 0 
-      ? new Date(Math.max(...todasDatas.map(d => new Date(d).getTime())))
-      : null;
-
-    // Próximo agendamento
-    const agendamentosFuturos = paciente.agendamentos
-      .filter(a => a.data && new Date(a.data) > new Date())
-      .sort((a, b) => new Date(a.data!).getTime() - new Date(b.data!).getTime());
-    
-    const proximoAgendamento = agendamentosFuturos[0] || null;
-
-    return {
-      valorTotalGasto,
-      ultimaVisita,
-      proximoAgendamento
-    };
-  };
-
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', { 
-      style: 'currency', 
-      currency: 'BRL' 
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -228,11 +178,8 @@ export default function ProfileTabs({ paciente }: ProfileTabsProps) {
 
       case 'procedures':
         return (
-          <div className="space-y-4">
-            <MapaFacialProcedimento procedimentos={paciente.procedimentos_realizados} />
-            <div className="bg-white/60 backdrop-blur-xl rounded-xl p-6 border border-white/30">
-              <TabelaDeProcedimentos procedimentos={paciente.procedimentos_realizados} />
-            </div>
+          <div className="bg-white/60 backdrop-blur-xl rounded-xl p-6 border border-white/30">
+            <TabelaDeProcedimentos procedimentos={paciente.procedimentos_realizados} />
           </div>
         );
 
