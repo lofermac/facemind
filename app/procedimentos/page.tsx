@@ -9,13 +9,11 @@ import { TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import '../styles/procedimentos.css';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AppleLikeLoader from '@/components/AppleLikeLoader';
 import SkeletonLoader from '@/components/SkeletonLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import dynamic from 'next/dynamic';
-import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/solid';
 import StatusBadge from '@/components/StatusBadge';
-import { calcProcedureStatus, normalizeText } from '@/utils/statusRules';
+import { calcProcedureStatus, ProcedureStatus } from '@/utils/statusRules';
 import { useRef } from 'react';
 
 interface ProcedimentoRealizado {
@@ -30,6 +28,28 @@ interface ProcedimentoRealizado {
   duracao_efeito_meses: number | null;
   status_calculado?: string;
 }
+
+interface ProcedimentoRelacionamento {
+  nome_procedimento: string | null;
+  duracao_efeito_meses: number | null;
+}
+
+interface PacienteRelacionamento {
+  nome: string | null;
+}
+
+interface ProcedimentoQueryRow {
+  id: string;
+  created_at: string;
+  paciente_id: string;
+  data_procedimento: string | null;
+  categoria_nome: string | null;
+  valor_cobrado: number | null;
+  procedimento_tabela_valores_id: ProcedimentoRelacionamento | ProcedimentoRelacionamento[] | null;
+  pacientes: PacienteRelacionamento | PacienteRelacionamento[] | null;
+}
+
+const ITENS_POR_PAGINA = 18;
 
 function formatarDataLista(data: string | null): string {
   if (!data) return '-';
@@ -60,7 +80,7 @@ function statusRenovado() {
 function SeloStatus({ status, diasRestantes }: { status: string; diasRestantes?: number | null }) {
   return (
     <div className="absolute -top-4 right-4 z-20">
-      <StatusBadge status={status as any} dias={diasRestantes ?? undefined} />
+      <StatusBadge status={status as ProcedureStatus} dias={diasRestantes ?? undefined} />
     </div>
   );
 }
@@ -71,6 +91,8 @@ function ProcedimentosInner() {
   const searchParams = useSearchParams();
   const [procedimentos, setProcedimentos] = useState<ProcedimentoRealizado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalProcedimentos, setTotalProcedimentos] = useState(0);
+  const [paginaAtual, setPaginaAtual] = useState(1);
   const [searchTerm, setSearchTerm] = useState(() => {
     if (searchParams && typeof searchParams.get === 'function') {
       return searchParams.get('filtroNome') || '';
@@ -141,16 +163,33 @@ function ProcedimentosInner() {
     }
   }
 
-  async function fetchProcedimentosComNomesPacientes() {
+  async function fetchProcedimentosComNomesPacientes(pagina = 1) {
     setLoading(true);
-    const { data: procedimentosData, error: procedimentosError } = await supabase
+    const inicio = (pagina - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA - 1;
+
+    const { data: procedimentosData, error: procedimentosError, count } = await supabase
       .from('procedimentos_realizados')
-      .select('id, created_at, paciente_id, data_procedimento, categoria_nome, valor_cobrado, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses )')
-      .order('data_procedimento', { ascending: false });
+      .select(
+        'id, created_at, paciente_id, data_procedimento, categoria_nome, valor_cobrado, procedimento_tabela_valores_id ( nome_procedimento, duracao_efeito_meses ), pacientes ( nome )',
+        { count: 'exact' }
+      )
+      .order('data_procedimento', { ascending: false })
+      .range(inicio, fim);
 
     if (procedimentosError) {
       console.error('Erro ao buscar procedimentos:', procedimentosError);
       toast.error('Falha ao carregar procedimentos.');
+      setLoading(false);
+      return;
+    }
+
+    const total = count ?? 0;
+    setTotalProcedimentos(total);
+
+    const totalPaginas = Math.max(1, Math.ceil(total / ITENS_POR_PAGINA));
+    if (pagina > totalPaginas) {
+      setPaginaAtual(totalPaginas);
       setLoading(false);
       return;
     }
@@ -161,18 +200,15 @@ function ProcedimentosInner() {
       return;
     }
 
-    const procedimentosComNomes: ProcedimentoRealizado[] = [];
-    for (const proc of procedimentosData) {
-      const { data: pacienteData, error: pacienteError } = await supabase
-        .from('pacientes')
-        .select('nome')
-        .eq('id', proc.paciente_id)
-        .single();
-
+    const procedimentosComNomes: ProcedimentoRealizado[] = (procedimentosData as ProcedimentoQueryRow[]).map((proc) => {
       // Normaliza o retorno do join: pode vir como objeto ou como array dependendo do tipo gerado
-      const tvRaw: any = (proc as any).procedimento_tabela_valores_id ?? null;
+      const tvRaw = proc.procedimento_tabela_valores_id ?? null;
+      const pacienteRaw = proc.pacientes ?? null;
+
       let procedimento_nome = '';
       let duracao_efeito_meses: number | null = null;
+      let paciente_nome = 'Informação indisponível';
+
       if (tvRaw) {
         if (Array.isArray(tvRaw)) {
           const first = tvRaw[0] ?? null;
@@ -186,29 +222,21 @@ function ProcedimentosInner() {
         }
       }
 
-      if (pacienteError) {
-        procedimentosComNomes.push({
-          ...proc,
-          procedimento_nome,
-          duracao_efeito_meses,
-          paciente_nome: 'Paciente não encontrado',
-        } as ProcedimentoRealizado);
-      } else if (pacienteData) {
-        procedimentosComNomes.push({
-          ...proc,
-          procedimento_nome,
-          duracao_efeito_meses,
-          paciente_nome: pacienteData.nome,
-        } as ProcedimentoRealizado);
-      } else {
-        procedimentosComNomes.push({
-          ...proc,
-          procedimento_nome,
-          duracao_efeito_meses,
-          paciente_nome: 'Informação indisponível',
-        } as ProcedimentoRealizado);
+      if (pacienteRaw) {
+        if (Array.isArray(pacienteRaw)) {
+          paciente_nome = pacienteRaw[0]?.nome ?? 'Paciente não encontrado';
+        } else {
+          paciente_nome = pacienteRaw.nome ?? 'Paciente não encontrado';
+        }
       }
-    }
+
+      return {
+        ...proc,
+        procedimento_nome,
+        duracao_efeito_meses,
+        paciente_nome,
+      } as ProcedimentoRealizado;
+    });
 
     // --- Marcar procedimentos "Renovado" ---
     const mapaPorPacienteEProc: Record<string, ProcedimentoRealizado[]> = {};
@@ -251,9 +279,12 @@ function ProcedimentosInner() {
 
   useEffect(() => {
     fetchDuracoesProcedimentos();
-    fetchProcedimentosComNomesPacientes();
     fetchCategorias();
   }, []);
+
+  useEffect(() => {
+    fetchProcedimentosComNomesPacientes(paginaAtual);
+  }, [paginaAtual]);
 
   // Atualiza filtro por status ao mudar a URL
   useEffect(() => {
@@ -284,6 +315,9 @@ function ProcedimentosInner() {
     }
     return matchNome && matchCategoria && matchStatus;
   });
+  const totalPaginas = Math.max(1, Math.ceil(totalProcedimentos / ITENS_POR_PAGINA));
+  const podeVoltarPagina = paginaAtual > 1;
+  const podeAvancarPagina = paginaAtual < totalPaginas;
 
   const openModal = (proc: ProcedimentoRealizado) => {
     setProcedimentoParaExcluir(proc);
@@ -307,7 +341,7 @@ function ProcedimentosInner() {
         toast.error(`Erro ao excluir: ${error.message}`);
       } else {
         toast.success('Procedimento excluído com sucesso!');
-        fetchProcedimentosComNomesPacientes();
+        fetchProcedimentosComNomesPacientes(paginaAtual);
       }
       closeModal();
     }
@@ -428,7 +462,7 @@ function ProcedimentosInner() {
 
       {/* Lista mobile */}
       <ErrorBoundary name="Lista de Procedimentos">
-        <ProcedimentosCardList procedimentos={procedimentosFiltrados} onDelete={(p:any)=>openModal(p)} />
+        <ProcedimentosCardList procedimentos={procedimentosFiltrados} onDelete={(p: ProcedimentoRealizado) => openModal(p)} />
       </ErrorBoundary>
       {/* Grid desktop */}
       <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -488,6 +522,30 @@ function ProcedimentosInner() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-slate-200/70 pt-6">
+        <p className="text-sm text-slate-600">
+          Pagina {paginaAtual} de {totalPaginas} ({totalProcedimentos} procedimentos no total)
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPaginaAtual((prev) => Math.max(1, prev - 1))}
+            disabled={!podeVoltarPagina || loading}
+            className="inline-flex items-center px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Anterior
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaginaAtual((prev) => Math.min(totalPaginas, prev + 1))}
+            disabled={!podeAvancarPagina || loading}
+            className="inline-flex items-center px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 font-medium hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Proxima
+          </button>
+        </div>
       </div>
 
       <Transition.Root show={isModalOpen} as={React.Fragment}>
