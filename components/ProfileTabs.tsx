@@ -8,6 +8,7 @@ import {
   CurrencyDollarIcon 
 } from '@heroicons/react/24/outline';
 import TabelaDeProcedimentos from './pacientes/TabelaDeProcedimentos';
+import MapaFacialProcedimento from './pacientes/MapaFacialProcedimento';
 import PatientKPIs from './PatientKPIs';
 import DocumentosUpload from './DocumentosUpload';
 
@@ -15,6 +16,7 @@ interface ProcedimentoRealizado {
   id: string;
   data_procedimento: string | null;
   valor_cobrado: number | null;
+  observacoes?: string | null;
   procedimento_tabela_valores_id?: {
     nome_procedimento: string | null;
     duracao_efeito_meses?: number | null;
@@ -226,8 +228,11 @@ export default function ProfileTabs({ paciente }: ProfileTabsProps) {
 
       case 'procedures':
         return (
-          <div className="bg-white/60 backdrop-blur-xl rounded-xl p-6 border border-white/30">
-            <TabelaDeProcedimentos procedimentos={paciente.procedimentos_realizados} />
+          <div className="space-y-4">
+            <MapaFacialProcedimento procedimentos={paciente.procedimentos_realizados} />
+            <div className="bg-white/60 backdrop-blur-xl rounded-xl p-6 border border-white/30">
+              <TabelaDeProcedimentos procedimentos={paciente.procedimentos_realizados} />
+            </div>
           </div>
         );
 

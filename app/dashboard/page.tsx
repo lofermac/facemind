@@ -559,7 +559,7 @@ export default function DashboardPage() {
       if (tiposProcedimentoData) {
         tiposProcedimentoData.forEach(tipo => {
           if (tipo.nome_procedimento && typeof tipo.duracao_efeito_meses === 'number') {
-            mapaDuracao.set(String(tipo.nome_procedimento).toLowerCase(), tipo.duracao_efeito_meses);
+            mapaDuracao.set(String(tipo.nome_procedimento).toLowerCase().trim(), tipo.duracao_efeito_meses);
           }
         });
       }
@@ -594,14 +594,15 @@ export default function DashboardPage() {
               const maisRecente = lista[lista.length - 1]; // O último da lista (mais recente)
               const proc = maisRecente.proc;
               const nomeProc = (proc as any).procedimento_tabela_valores_id?.nome_procedimento;
-              const chave = String(nomeProc).toLowerCase();
+              const chave = String(nomeProc).toLowerCase().trim();
               const duracao = mapaDuracao.get(chave);
               if (!duracao) return;
               
               const { status, dias } = calcProcedureStatus(proc.data_procedimento, duracao, hoje);
               const diffDias = dias;
-              if (diffDias !== null && diffDias >= 0 && diffDias <= 30) {
-                // Apenas procedimentos próximos ao vencimento (não renovados)
+              // Contato imediato deve exibir SOMENTE quem está próximo do vencimento.
+              // Procedimentos já vencidos entram exclusivamente no card de renovações atrasadas.
+              if (status === 'proximo_vencimento' && diffDias !== null && diffDias >= 0 && diffDias <= 30) {
                 oportunidades.push({
                   id: `${paciente.id}-${(proc as any).data_procedimento}-${(proc as any).id}-${((proc as any).procedimento_tabela_valores_id?.nome_procedimento || '')}`,
                   nome: nomeProc,

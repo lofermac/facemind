@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 
 // Semana começando na segunda-feira
 const weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DURACAO_OPCOES_MINUTOS = [15, 30, 45, 60, 90, 120, 150, 180, 210, 240, 300, 360, 480];
 
 function getMonthMatrix(year: number, month: number) {
   // Ajuste para semana começando na segunda
@@ -50,6 +51,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
   const [erroRotulo, setErroRotulo] = useState('');
   const [enviarConfirmacao, setEnviarConfirmacao] = useState(true);
   const [observacao, setObservacao] = useState('');
+  const [diaInteiro, setDiaInteiro] = useState(false);
   const [loading, setLoading] = useState(false);
   const [dataLocal, setDataLocal] = useState(data);
   // Estado para controle de hora com setas (minutos desde 00:00)
@@ -86,6 +88,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
       if (agendamentoEditavel) {
         setPacienteSelecionado(agendamentoEditavel.paciente_id?.toString() || '');
         setDuracao(agendamentoEditavel.duracao_min || 60);
+        setDiaInteiro((agendamentoEditavel.duracao_min || 0) >= 1440 || agendamentoEditavel.hora === '00:00');
         setRotulo(agendamentoEditavel.rotulo || '');
         setEnviarConfirmacao(agendamentoEditavel.enviar_whatsapp === true || agendamentoEditavel.enviar_whatsapp === 'true');
         setObservacao(agendamentoEditavel.observacao || '');
@@ -97,6 +100,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
       } else {
         setPacienteSelecionado('');
         setDuracao(60);
+        setDiaInteiro(false);
         setRotulo('');
         setEnviarConfirmacao(true);
         setObservacao('');
@@ -141,6 +145,8 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
           }
           setErroRotulo('');
           setLoading(true);
+          const horaParaSalvar = diaInteiro ? '00:00' : formatHora(horaMinutos);
+          const duracaoParaSalvar = diaInteiro ? 1440 : duracao;
           let error;
           
           // Validar se paciente existe
@@ -156,7 +162,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
               .from('agendamentos')
               .select('id')
               .eq('data', dataLocal)
-              .eq('hora', formatHora(horaMinutos))
+              .eq('hora', horaParaSalvar)
               .eq('paciente_id', pacienteSelecionado);
               
             if (existingAppointments && existingAppointments.length > 0) {
@@ -172,8 +178,8 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
               .update({
                 paciente_id: pacienteSelecionado,
                 data: dataLocal,
-                hora: formatHora(horaMinutos),
-                duracao_min: duracao,
+                hora: horaParaSalvar,
+                duracao_min: duracaoParaSalvar,
                 observacao,
                 enviar_whatsapp: enviarConfirmacao,
                 rotulo,
@@ -185,8 +191,8 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
             const result = await supabase.from('agendamentos').insert([{
               paciente_id: pacienteSelecionado,
               data: dataLocal,
-              hora: formatHora(horaMinutos),
-              duracao_min: duracao,
+              hora: horaParaSalvar,
+              duracao_min: duracaoParaSalvar,
               observacao,
               enviar_whatsapp: enviarConfirmacao,
               rotulo,
@@ -246,14 +252,15 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
                 <input
                   type="text"
                   className="w-full border-2 border-slate-200 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:border-blue-400"
-                  value={formatHora(horaMinutos)}
+                  value={diaInteiro ? 'Dia inteiro' : formatHora(horaMinutos)}
                   readOnly
                 />
-                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-[3px] text-slate-400 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                <div className={`pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-[3px] text-slate-400 ${diaInteiro ? 'opacity-30' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'} transition-opacity`}>
                   <button
                     type="button"
                     aria-label="Aumentar"
                     className="pointer-events-auto w-3 h-3 flex items-center justify-center p-0 m-0 bg-transparent border-0 text-slate-400 hover:text-slate-600"
+                    disabled={diaInteiro}
                     onClick={() => setHoraMinutos(prev => clampHora(prev + 15))}
                   >
                     <svg viewBox="0 0 20 20" className="w-3 h-3" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -264,6 +271,7 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
                     type="button"
                     aria-label="Diminuir"
                     className="pointer-events-auto w-3 h-3 flex items-center justify-center p-0 m-0 bg-transparent border-0 text-slate-400 hover:text-slate-600"
+                    disabled={diaInteiro}
                     onClick={() => setHoraMinutos(prev => clampHora(prev - 15))}
                   >
                     <svg viewBox="0 0 20 20" className="w-3 h-3" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -275,22 +283,31 @@ function ModalAgendamento({ open, onClose, data, hora, onAgendamentoSalvo, agend
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-700 mb-1">Duração<span className="text-red-500">*</span></label>
-              <div className="relative">
-                <input
-                  type="number"
-                  className="w-full border-2 border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 pr-10"
-                  min={15}
-                  max={120}
-                  step={15}
-                  value={duracao}
-                  onChange={e => setDuracao(Number(e.target.value))}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  onKeyDown={e => e.preventDefault()}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none">min</span>
-              </div>
+              <select
+                className="w-full border-2 border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-400 bg-white disabled:bg-slate-100"
+                value={duracao}
+                onChange={e => setDuracao(Number(e.target.value))}
+                disabled={diaInteiro}
+              >
+                {DURACAO_OPCOES_MINUTOS.map((opcao) => (
+                  <option key={opcao} value={opcao}>
+                    {opcao} min
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <input
+              type="checkbox"
+              id="dia-inteiro"
+              className="accent-blue-600 w-4 h-4"
+              checked={diaInteiro}
+              onChange={e => setDiaInteiro(e.target.checked)}
+            />
+            <label htmlFor="dia-inteiro" className="text-sm text-slate-700 font-medium">
+              Compromisso o dia inteiro (trava a agenda no dia)
+            </label>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Observação</label>
@@ -701,8 +718,32 @@ function AgendaPageContent() {
                   const dataAg = typeof a.data === 'string' ? a.data : new Date(a.data).toISOString().slice(0, 10);
                   return dataAg === dataDia;
                 });
+                const agsOrdenados = [...agsDay].sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+                const agsAllDay = agsOrdenados.filter(a => (a.duracao_min || 0) >= 1440 || a.hora === '00:00');
+                const agsComHora = agsOrdenados.filter(a => !((a.duracao_min || 0) >= 1440 || a.hora === '00:00'));
 
-                return agsDay.map(a => {
+                return [
+                  ...agsAllDay.map((a, allDayIndex) => (
+                    <div
+                      key={`all-day-${a.id}-${dayIndex}`}
+                      className="absolute rounded-lg border-l-4 border-slate-500 bg-slate-700/95 px-2 py-1 text-[11px] font-semibold text-white z-30 cursor-pointer shadow-md"
+                      style={{
+                        top: `${2 + allDayIndex * 24}px`,
+                        left: `calc(${(dayIndex + 1) * (100 / 8)}% + 2px)`,
+                        width: `calc(${100 / 8}% - 4px)`,
+                        minHeight: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                      }}
+                      onClick={e => { e.stopPropagation(); handleAgendamentoClick(a); }}
+                      title={`${pacientesMap[a.paciente_id] || ''} - Dia inteiro`}
+                    >
+                      Dia inteiro - {pacientesMap[a.paciente_id] || 'Compromisso'}
+                    </div>
+                  )),
+                  ...agsComHora.map(a => {
                   const [hStr, mStr] = a.hora.split(':');
                   const agHour = parseInt(hStr, 10);
                   const agMinutes = parseInt(mStr, 10);
@@ -818,7 +859,7 @@ function AgendaPageContent() {
                       <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-200 rounded-lg"></div>
                     </div>
                   );
-                });
+                })];
               })}
               
               {/* Linha indicadora do horário atual */}
